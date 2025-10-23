@@ -1,91 +1,223 @@
+/*
+  gradient_descent_linear_regression.c
+  ---------------------------------------------------------------
+  Regressão linear (y ≈ a*x + b) treinada com Descida de Gradiente,
+  validada com a solução fechada (mínimos quadrados).
+  - ~8 KB de dados: 2 × 1000 floats
+  - Leitura de CSV no formato:
+        x,y
+        1.000000,3.190011
+        2.000000,5.093333
+        ...
+
+  Conceitos e símbolos:
+    - a  : inclinação (slope) da reta
+    - b  : intercepto da reta (valor de y quando x=0)
+    - taxa_de_aprendizado_inclinacao  : passo de atualização para a
+    - taxa_de_aprendizado_intercepto  : passo de atualização para b
+    - erro_medio_quadratico (MSE)     : média do quadrado do erro
+    - x_centralizado = x - media_x    : ajuda a “desacoplar” a de b
+    - b_original = b_centralizado - a_centralizado * media_x
+
+  Observação: Usamos “centralização” de x (subtrair a média) para que
+  o intercepto aprenda corretamente com passos de atualização simples.
+  Isso não é “otimização micro”; é apenas tornar o problema bem condicionado.
+*/
+
 #include <stdio.h>
-#include <math.h>
-#include <stdlib.h> 
 
-#define N 1000
+/* --------------------- Parâmetros do experimento --------------------- */
 
-typedef struct {
-    double peso;       // w
-    double intercepto; // b
-} Modelo;
+#define QUANTIDADE_AMOSTRAS 1000
+#define EPOCAS_TREINAMENTO  30000
 
-double prever(const Modelo *m, double x) { return m->peso * x + m->intercepto; }
+/* Passos de atualização separados:
+   - a (inclinação) precisa de passo pequeno (x pode ser grande)
+   - b (intercepto) pode usar passo maior
+*/
+#define TAXA_APRENDIZADO_INCLINACAO  1e-5f
+#define TAXA_APRENDIZADO_INTERCEPTO  1e-2f
 
-double mse(const Modelo *m, const double x[], const double y[], int n) {
-    double e = 0.0;
-    for (int i = 0; i < n; i++) {
-        double d = prever(m, x[i]) - y[i];
-        e += d * d;
-    }
-    return e / n;
-}
+#define INTERVALO_DE_LOG 5000
 
-void ajustar_ols(Modelo *m, const double x[], const double y[], int n) {
-    double sumx = 0.0, sumy = 0.0;
-    for (int i = 0; i < n; i++) { sumx += x[i]; sumy += y[i]; }
-    double mean_x = sumx / n;
-    double mean_y = sumy / n;
+/* --------------------- Armazenamento estático (~8KB) ------------------ */
 
-    double Sxx = 0.0, Sxy = 0.0;
-    for (int i = 0; i < n; i++) {
-        double xc = x[i] - mean_x;
-        double yc = y[i] - mean_y;
-        Sxx += xc * xc;
-        Sxy += xc * yc;
+static float g_x[QUANTIDADE_AMOSTRAS];            /* valores de entrada (x)        */
+static float g_y[QUANTIDADE_AMOSTRAS];            /* valores alvo (y)              */
+static float g_x_centralizado[QUANTIDADE_AMOSTRAS];/* x - media_x                   */
+static int   g_n = 0;                              /* número de amostras lidas      */
+
+/* --------------------- Leitura de CSV (simples) ----------------------- */
+
+static int carregar_csv(const char *caminho_csv) {
+    FILE *fp = fopen(caminho_csv, "r");
+    if (!fp) {
+        fprintf(stderr, "Erro: não foi possível abrir '%s'\n", caminho_csv);
+        return 0;
     }
 
-    m->peso = Sxy / Sxx; // w
-    m->intercepto = mean_y - m->peso * mean_x; // b
-}
-
-int main(void) {
-
-    double X[N];
-    double Y[N];
-    
-    FILE *fp = fopen("dataset.csv", "r");
-    if (fp == NULL) {
-        fprintf(stderr, "Erro: Não foi possível abrir o arquivo 'dataset.csv'\n");
-        return 1; 
-    }
-
-    char buffer[100];
-    if (fgets(buffer, sizeof(buffer), fp) == NULL) {
-        fprintf(stderr, "Erro: Arquivo 'dataset.csv' está vazio ou corrompido.\n");
+    char cabecalho[128];
+    if (!fgets(cabecalho, sizeof(cabecalho), fp)) {
+        fprintf(stderr, "Erro: arquivo vazio ou corrompido.\n");
         fclose(fp);
-        return 1;
+        return 0;
     }
 
-    for (int i = 0; i < N; i++) {
-        if (fscanf(fp, "%lf,%lf", &X[i], &Y[i]) != 2) {
-            fprintf(stderr, "Erro ao ler a linha %d do arquivo de dados.\n", i + 2);
+    for (int i = 0; i < QUANTIDADE_AMOSTRAS; i++) {
+        double xd, yd;
+        if (fscanf(fp, "%lf,%lf", &xd, &yd) != 2) {
+            fprintf(stderr, "Erro ao ler a linha %d do CSV.\n", i + 2);
             fclose(fp);
-            return 1;
+            return 0;
+        }
+        g_x[i] = (float)xd;
+        g_y[i] = (float)yd;
+    }
+
+    fclose(fp);
+    g_n = QUANTIDADE_AMOSTRAS;
+    return g_n;
+}
+
+/* --------------------- Utilidades numéricas simples ------------------- */
+
+static float media(const float *v, int n) {
+    double soma = 0.0;
+    for (int i = 0; i < n; i++) soma += (double)v[i];
+    return (float)(soma / (double)n);
+}
+
+static float erro_medio_quadratico(float a, float b, const float *x, const float *y, int n) {
+    double soma = 0.0;
+    for (int i = 0; i < n; i++) {
+        double y_pred = (double)a * (double)x[i] + (double)b;
+        double e = y_pred - (double)y[i];
+        soma += e * e;
+    }
+    return (float)(soma / (double)n);
+}
+
+/* --------------------- Referência: mínimos quadrados ------------------ */
+/* Resolve a* e b* analiticamente (para validação) sobre (g_x, g_y).     */
+
+static void minimos_quadrados(float *a_ref, float *b_ref) {
+    double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
+    for (int i = 0; i < g_n; i++) {
+        double x = (double)g_x[i];
+        double y = (double)g_y[i];
+        sx  += x;
+        sy  += y;
+        sxx += x * x;
+        sxy += x * y;
+    }
+    double denom = (double)g_n * sxx - sx * sx;
+    double a = ((double)g_n * sxy - sx * sy) / denom;
+    double b = (sy - a * sx) / (double)g_n;
+    *a_ref = (float)a;
+    *b_ref = (float)b;
+}
+
+/* --------------------- Uma época de descida de gradiente -------------- */
+/*
+  Modelo treinado no espaço “centrado”:
+    y ≈ a_centralizado * (x - media_x) + b_centralizado
+
+  Gradientes (derivados do erro médio quadrático):
+    dJ/da_centralizado = (2/N) * Σ (erro * (x - media_x))
+    dJ/db_centralizado = (2/N) * Σ erro
+
+  Atualização (regra do “desce a ladeira”):
+    a_centralizado ← a_centralizado - taxa_inclinacao  * dJ/da_centralizado
+    b_centralizado ← b_centralizado - taxa_intercepto  * dJ/db_centralizado
+*/
+
+static void uma_epoca_descida_de_gradiente(float *a_centralizado,
+                                           float *b_centralizado)
+{
+    double gradiente_a = 0.0;
+    double gradiente_b = 0.0;
+
+    for (int i = 0; i < g_n; i++) {
+        double u = (double)g_x_centralizado[i]; /* x - media_x */
+        double y_pred = (double)(*a_centralizado) * u + (double)(*b_centralizado);
+        double erro = y_pred - (double)g_y[i];
+        gradiente_a += erro * u;
+        gradiente_b += erro;
+    }
+
+    gradiente_a = 2.0 * gradiente_a / (double)g_n;
+    gradiente_b = 2.0 * gradiente_b / (double)g_n;
+
+    *a_centralizado -= (TAXA_APRENDIZADO_INCLINACAO * (float)gradiente_a);
+    *b_centralizado -= (TAXA_APRENDIZADO_INTERCEPTO * (float)gradiente_b);
+}
+
+/* --------------------- Treinamento completo --------------------------- */
+/*
+  Passos:
+    1) centraliza x: g_x_centralizado[i] = g_x[i] - media_x
+    2) inicia a e b (b começa em media_y para acelerar)
+    3) executa EPOCAS_TREINAMENTO épocas
+    4) converte de volta para a escala original:
+         a_original = a_centralizado
+         b_original = b_centralizado - a_centralizado * media_x
+*/
+
+static void treinar_descida_de_gradiente(float *a_original,
+                                         float *b_original)
+{
+    float media_x = media(g_x, g_n);
+    float media_y = media(g_y, g_n);
+
+    for (int i = 0; i < g_n; i++) {
+        g_x_centralizado[i] = g_x[i] - media_x;
+    }
+
+    float a_c = 0.0f;          /* inclinação no espaço centrado */
+    float b_c = media_y;       /* intercepto começa na média de y */
+
+    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
+        uma_epoca_descida_de_gradiente(&a_c, &b_c);
+
+        if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1)) {
+            /* Métrica no espaço centrado (opcional) */
+            float mse_centrado = erro_medio_quadratico(a_c, b_c, g_x_centralizado, g_y, g_n);
+
+            /* Converte para a escala original para inspecionar a e b “finais” */
+            float a_temp = a_c;
+            float b_temp = b_c - a_c * media_x;
+            float mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
+
+            printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
+                   "(original) a=%.6f b=%.6f | MSE=%.6f\n",
+                   epoca, a_c, b_c, mse_centrado, a_temp, b_temp, mse_original);
         }
     }
-    
-    fclose(fp);
-    printf("Dados carregados de 'dataset.csv' com sucesso.\n");
 
-    const double peso_real = 2.0;
-    const double intercepto_real = 1.0;
-    const double ruido_max = 0.5;
+    *a_original = a_c;
+    *b_original = b_c - a_c * media_x;
+}
 
-    Modelo modelo;
-    ajustar_ols(&modelo, X, Y, N);
+/* --------------------- Programa principal ----------------------------- */
 
-    printf("\n\n=== AJUSTE OLS ===\n\n");
-    printf("Peso: %.6f (esperado: %.2f)\n", modelo.peso, peso_real);
-    printf("Intercepto: %.6f (esperado: %.2f)\n", modelo.intercepto, intercepto_real);
-    printf("Erro (MSE): %.6f\n\n", mse(&modelo, X, Y, N));
+int main(void) {
+    const char *caminho_csv = "../dataset.csv";
 
-    printf("Testando predições:\n");
-    double teste[] = {100.0, 500.0, 1000.0};
-    for (int i = 0; i < 3; i++) {
-        double p = prever(&modelo, teste[i]);
-        double r = peso_real * teste[i] + intercepto_real;
-        printf("x = %.1f -> y predito = %.2f (real seria: %.2f)\n", teste[i], p, r);
-    }
+    if (!carregar_csv(caminho_csv)) return 1;
+    printf("Arquivo '%s' lido com sucesso (%d amostras)\n", caminho_csv, g_n);
+
+    float a_treinado = 0.0f, b_treinado = 0.0f;
+    treinar_descida_de_gradiente(&a_treinado, &b_treinado);
+
+    float a_referencia = 0.0f, b_referencia = 0.0f;
+    minimos_quadrados(&a_referencia, &b_referencia);
+
+    float mse_final = erro_medio_quadratico(a_treinado, b_treinado, g_x, g_y, g_n);
+
+    printf("\n=== RESULTADOS FINAIS ===\n");
+    printf("Descida de Gradiente:  a = %.6f  b = %.6f  | MSE = %.6f\n", a_treinado, b_treinado, mse_final);
+    printf("Mínimos Quadrados:     a* = %.6f b* = %.6f\n", a_referencia, b_referencia);
+    printf("Modelo gerador (ideal): a = 2.000000  b = 1.000000  (y = 2x + 1)\n");
 
     return 0;
 }
