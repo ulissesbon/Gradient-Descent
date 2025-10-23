@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define N 1000  // dataset fixo (sem alocação dinâmica)
+#define N 1000 
 
 // Array x[N] - Simples de 1.0 a 1000.0
 static double X[N] = {
@@ -212,7 +212,7 @@ static double Y[N] = {
     };
 
 typedef struct {
-    double peso;       // w
+    double peso; // w
     double intercepto; // b
 } Modelo;
 
@@ -227,7 +227,6 @@ double mse(const Modelo *m, const double x[], const double y[], int n) {
     return e / n;
 }
 
-/* Ajuste linear por solução fechada (OLS) */
 void ajustar_ols(Modelo *m, const double x[], const double y[], int n) {
     double sumx = 0.0, sumy = 0.0;
     for (int i = 0; i < n; i++) { sumx += x[i]; sumy += y[i]; }
@@ -242,7 +241,7 @@ void ajustar_ols(Modelo *m, const double x[], const double y[], int n) {
         Sxy += xc * yc;
     }
 
-    m->peso = Sxy / Sxx;                 // w
+    m->peso = Sxy / Sxx; // w
     m->intercepto = mean_y - m->peso * mean_x; // b
 }
 
@@ -253,7 +252,7 @@ int main(void) {
     const double ruido_max = 0.5;
 
     Modelo modelo;
-    ajustar_ols(&modelo, X, Y, N); // sem gradiente, estável e exato no MSE
+    ajustar_ols(&modelo, X, Y, N);
 
     printf("\n\n=== AJUSTE OLS ===\n\n");
     printf("Peso: %.6f (esperado: %.2f)\n", modelo.peso, peso_real);
