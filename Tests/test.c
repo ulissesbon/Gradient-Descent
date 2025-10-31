@@ -44,15 +44,15 @@
 
 // vetor de entradas (x) — valores do eixo horizontal.
 // exemplo: 1.0, 2.0, 3.0, ..., 1000.0
-static float g_x[QUANTIDADE_AMOSTRAS];            /* valores de entrada (x)        */
+static double g_x[QUANTIDADE_AMOSTRAS];            /* valores de entrada (x)        */
 
 // vetor de saídas (y) — valores medidos do dataset
 // exemplo: y = 2x + 1 + ruído
-static float g_y[QUANTIDADE_AMOSTRAS];            /* valores alvo (y)              */
+static double g_y[QUANTIDADE_AMOSTRAS];            /* valores alvo (y)              */
 
 // vetor auxiliar: x centralizado (x - média(x))
 // equilibra o treinamento e evitar oscilações
-static float g_x_centralizado[QUANTIDADE_AMOSTRAS];/* x - media_x                   */
+static double g_x_centralizado[QUANTIDADE_AMOSTRAS];/* x - media_x                   */
 
 // quantidade real de amostras
 static int   g_n = 0;                              /* número de amostras lidas      */
@@ -80,8 +80,8 @@ static int carregar_csv(const char *caminho_csv) {
             fclose(fp);
             return 0;
         }
-        g_x[i] = (float)xd;
-        g_y[i] = (float)yd;
+        g_x[i] = (double)xd;
+        g_y[i] = (double)yd;
     }
 
     fclose(fp);
@@ -91,26 +91,26 @@ static int carregar_csv(const char *caminho_csv) {
 
 /* --------------------- Utilidades numéricas simples ------------------- */
 
-static float media(const float *v, int n) {
+static double media(const double *v, int n) {
     double soma = 0.0;
     for (int i = 0; i < n; i++) soma += (double)v[i];
-    return (float)(soma / (double)n);
+    return (double)(soma / (double)n);
 }
 
-static float erro_medio_quadratico(float a, float b, const float *x, const float *y, int n) {
+static double erro_medio_quadratico(double a, double b, const double *x, const double *y, int n) {
     double soma = 0.0;
     for (int i = 0; i < n; i++) {
         double y_pred = (double)a * (double)x[i] + (double)b; // ← previsão: a*x + b
         double e = y_pred - (double)y[i];                     // ← erro da amostra
         soma += e * e;                                        // ← erro ao quadrado
     }
-    return (float)(soma / (double)n);                         // ← MSE: média dos quadrados
+    return (double)(soma / (double)n);                         // ← MSE: média dos quadrados
 }
 
 /* --------------------- Referência: mínimos quadrados ------------------ */
 /* Resolve a* e b* analiticamente (para validação) sobre (g_x, g_y).     */
 
-static void minimos_quadrados(float *a_ref, float *b_ref) {
+static void minimos_quadrados(double *a_ref, double *b_ref) {
     double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
     for (int i = 0; i < g_n; i++) {
         double x = (double)g_x[i];
@@ -123,8 +123,8 @@ static void minimos_quadrados(float *a_ref, float *b_ref) {
     double denom = (double)g_n * sxx - sx * sx;
     double a = ((double)g_n * sxy - sx * sy) / denom;
     double b = (sy - a * sx) / (double)g_n;
-    *a_ref = (float)a;
-    *b_ref = (float)b;
+    *a_ref = (double)a;
+    *b_ref = (double)b;
 }
 
 /* --------------------- Uma época de descida de gradiente -------------- */
@@ -141,8 +141,8 @@ static void minimos_quadrados(float *a_ref, float *b_ref) {
     b_centralizado ← b_centralizado - taxa_intercepto  * dJ/db_centralizado
 */
 
-static void uma_epoca_descida_de_gradiente(float *a_centralizado,
-                                           float *b_centralizado)
+static void uma_epoca_descida_de_gradiente(double *a_centralizado,
+                                           double *b_centralizado)
 {
     double gradiente_a = 0.0;
     double gradiente_b = 0.0;
@@ -160,8 +160,8 @@ static void uma_epoca_descida_de_gradiente(float *a_centralizado,
     gradiente_a = 2.0 * gradiente_a / (double)g_n;
     gradiente_b = 2.0 * gradiente_b / (double)g_n;
 
-    *a_centralizado -= (TAXA_APRENDIZADO_INCLINACAO * (float)gradiente_a);
-    *b_centralizado -= (TAXA_APRENDIZADO_INTERCEPTO * (float)gradiente_b);
+    *a_centralizado -= (TAXA_APRENDIZADO_INCLINACAO * (double)gradiente_a);
+    *b_centralizado -= (TAXA_APRENDIZADO_INTERCEPTO * (double)gradiente_b);
 }
 
 /* --------------------- Treinamento completo --------------------------- */
@@ -175,30 +175,30 @@ static void uma_epoca_descida_de_gradiente(float *a_centralizado,
          b_original = b_centralizado - a_centralizado * media_x
 */
 
-static void treinar_descida_de_gradiente(float *a_original,
-                                         float *b_original)
+static void treinar_descida_de_gradiente(double *a_original,
+                                         double *b_original)
 {
-    float media_x = media(g_x, g_n);
-    float media_y = media(g_y, g_n);
+    double media_x = media(g_x, g_n);
+    double media_y = media(g_y, g_n);
 
     for (int i = 0; i < g_n; i++) {
         g_x_centralizado[i] = g_x[i] - media_x;
     }
 
-    float a_c = 0.0f;          /* inclinação no espaço centrado */
-    float b_c = media_y;       /* intercepto começa na média de y */
+    double a_c = 0.0f;          /* inclinação no espaço centrado */
+    double b_c = media_y;       /* intercepto começa na média de y */
 
     for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
         uma_epoca_descida_de_gradiente(&a_c, &b_c);
 
         if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1)) {
             /* Métrica no espaço centrado (opcional) */
-            float mse_centrado = erro_medio_quadratico(a_c, b_c, g_x_centralizado, g_y, g_n);
+            double mse_centrado = erro_medio_quadratico(a_c, b_c, g_x_centralizado, g_y, g_n);
 
             /* Converte para a escala original para inspecionar a e b “finais” */
-            float a_temp = a_c;
-            float b_temp = b_c - a_c * media_x;
-            float mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
+            double a_temp = a_c;
+            double b_temp = b_c - a_c * media_x;
+            double mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
 
             printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
                    "(original) a=%.6f b=%.6f | MSE=%.6f\n",
@@ -220,13 +220,13 @@ int main(void) {
 
     // parâmetros ajustados pelo algoritmo
     // a = inclinação da reta, b = intercepto
-    float a_treinado = 0.0f, b_treinado = 0.0f;
+    double a_treinado = 0.0f, b_treinado = 0.0f;
     treinar_descida_de_gradiente(&a_treinado, &b_treinado);
 
-    float a_referencia = 0.0f, b_referencia = 0.0f;
+    double a_referencia = 0.0f, b_referencia = 0.0f;
     minimos_quadrados(&a_referencia, &b_referencia);
 
-    float mse_final = erro_medio_quadratico(a_treinado, b_treinado, g_x, g_y, g_n);
+    double mse_final = erro_medio_quadratico(a_treinado, b_treinado, g_x, g_y, g_n);
 
     printf("\n=== RESULTADOS FINAIS ===\n");
     printf("Descida de Gradiente:  a = %.6f  b = %.6f  | MSE = %.6f\n", a_treinado, b_treinado, mse_final);
