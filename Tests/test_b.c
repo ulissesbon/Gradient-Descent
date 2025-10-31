@@ -1,117 +1,95 @@
-/*
-  gd_csv_nao_otimizado.c
-  ------------------------------------------------------------------
-  Regressão Linear 1D (y ≈ a*x + b) com Descida de Gradiente (GD),
-  lendo dados de um arquivo CSV no formato:
-    x,y
-    1.000000,3.190011
-    2.000000,5.093333
-    ...
 
-  Objetivo: versão didática e NAO OTIMIZADA (para "antes/depois").
-  - Sem recursão
-  - Sem alocação dinâmica (arrays estáticos)
-  - ~8 KB de dados: x[1000] + y[1000] em float
-  - Laços aninhados claros: épocas x amostras
-  - Fórmula do GD explícita (θ ← θ − α ∂J/∂θ)
-
-  Compile SEM otimização:
-    gcc -O0 -std=c99 gd_csv_nao_otimizado.c -o gd_csv_nao_opt
-*/
 
 #include <stdio.h>
 
-#define DATASET_PATH "dataset.csv"  /* altere o nome/ caminho se precisar */
-#define CAPACITY 1000               /* capacidade máxima de linhas lidas  */
+#define QUANTIDADE_AMOSTRAS 1000
+#define EPOCAS_TREINAMENTO 30000
+#define TAXA_APRENDIZADO_INCLINACAO 1e-5f
+#define TAXA_APRENDIZADO_INTERCEPTO 1e-2f
 
-#define EPOCHS 50000                /* muitas épocas, propositalmente     */
-#define LEARNING_RATE 1e-7f         /* eta pequeno (x pode ir até ~1000)  */
-#define LOG_INTERVAL 5000           /* imprime a cada 5k épocas           */
+#define INTERVALO_DE_LOG 5000
 
-/* ------------------------------------------------------------------
-   Armazenamento estático (~8KB): 2 * 1000 * 4 bytes = 8000 bytes
-   ------------------------------------------------------------------ */
-static float g_x[CAPACITY];
-static float g_y[CAPACITY];
 
-/* número real de amostras lidas do CSV (<= CAPACITY) */
+// vetor de entradas (x) — valores do eixo horizontal.
+// exemplo: 1.0, 2.0, 3.0, ..., 1000.0
+static float g_x[QUANTIDADE_AMOSTRAS];
+
+// vetor de saídas (y) — valores medidos do dataset
+// exemplo: y = 2x + 1 + ruído
+static float g_y[QUANTIDADE_AMOSTRAS];
+
+// vetor auxiliar: x centralizado (x - média(x))
+// equilibra o treinamento e evitar oscilações
+static float g_x_centralizado[QUANTIDADE_AMOSTRAS];
+
+// quantidade real de amostras
 static int g_n = 0;
 
-/* ------------------------------------------------------------------
-   Leitura de CSV simples e NÃO otimizada:
-   - Usa fgets + sscanf
-   - Ignora a primeira linha (cabeçalho "x,y")
-   - Para em EOF ou quando CAPACITY é atingida
-   ------------------------------------------------------------------ */
-static int load_csv(const char *path)
+static int carregar_csv(const char *caminho_csv)
 {
-    FILE *fp = fopen(path, "r");
-    if (!fp) {
-        printf("ERRO: nao consegui abrir '%s'\n", path);
+    FILE *fp = fopen(caminho_csv, "r");
+    if (!fp)
+    {
+        fprintf(stderr, "Erro: não foi possível abrir '%s'\n", caminho_csv);
         return 0;
     }
 
-    char line[256];
-    int line_no = 0;
-    int n = 0;
+    char cabecalho[128];
+    if (!fgets(cabecalho, sizeof(cabecalho), fp))
+    {
+        fprintf(stderr, "Erro: arquivo vazio ou corrompido.\n");
+        fclose(fp);
+        return 0;
+    }
 
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        if (line_no == 0) {  /* pula o cabecalho "x,y" */
-            line_no++;
-            continue;
+    for (int i = 0; i < QUANTIDADE_AMOSTRAS; i++)
+    {
+        double xd, yd;
+        if (fscanf(fp, "%lf,%lf", &xd, &yd) != 2)
+        {
+            fprintf(stderr, "Erro ao ler a linha %d do CSV.\n", i + 2);
+            fclose(fp);
+            return 0;
         }
-
-        float xv = 0.0f, yv = 0.0f;
-        /* leitura sem otimização; confia no formato "x,y" */
-        if (sscanf(line, "%f,%f", &xv, &yv) == 2) {
-            if (n < CAPACITY) {
-                g_x[n] = xv;
-                g_y[n] = yv;
-                n++;
-            } else {
-                /* Paramos ao atingir a capacidade; sem realloc. */
-                break;
-            }
-        }
-        line_no++;
+        g_x[i] = (float)xd;
+        g_y[i] = (float)yd;
     }
 
     fclose(fp);
-    g_n = n;
-    return n;
+    g_n = QUANTIDADE_AMOSTRAS;
+    return g_n;
 }
 
-/* --------------------------
-   Cálculo do custo (MSE)
-   -------------------------- */
-static float mse(float a, float b)
+static float media(const float *v, int n)
 {
-    double soma = 0.0;           /* double pra acumular com menos erro */
-    int i = 0;
-    while (i < g_n) {
-        double y_hat = (double)a * (double)g_x[i] + (double)b;
-        double e = y_hat - (double)g_y[i];
-        soma = soma + e * e;
-        i = i + 1;
-    }
-    return (float)(soma / (double)g_n);
+    double soma = 0.0;
+    for (int i = 0; i < n; i++)
+        soma += (double)v[i];
+    return (float)(soma / (double)n);
 }
 
-/* -----------------------------------------------
-   Solução fechada (referência) — mínimos quadrados
-   ----------------------------------------------- */
-static void normal_equation(float *a_ref, float *b_ref)
+static float erro_medio_quadratico(float a, float b, const float *x, const float *y, int n)
+{
+    double soma = 0.0;
+    for (int i = 0; i < n; i++) {
+        double y_pred = (double)a * (double)x[i] + (double)b; // ← previsão: a*x + b
+        double e = y_pred - (double)y[i];                     // ← erro da amostra
+        soma += e * e;                                        // ← erro ao quadrado
+    }
+    return (float)(soma / (double)n);                         // ← MSE: média dos quadrados
+}
+
+static void minimos_quadrados(float *a_ref, float *b_ref)
 {
     double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
-    int i = 0;
-    while (i < g_n) {
+    for (int i = 0; i < g_n; i++)
+    {
         double x = (double)g_x[i];
         double y = (double)g_y[i];
-        sx  = sx  + x;
-        sy  = sy  + y;
-        sxx = sxx + x * x;
-        sxy = sxy + x * y;
-        i   = i + 1;
+        sx += x;
+        sy += y;
+        sxx += x * x;
+        sxy += x * y;
     }
     double denom = (double)g_n * sxx - sx * sx;
     double a = ((double)g_n * sxy - sx * sy) / denom;
@@ -120,100 +98,86 @@ static void normal_equation(float *a_ref, float *b_ref)
     *b_ref = (float)b;
 }
 
-/* -----------------------------------------------
-   Uma época de GD "batch" (gradiente médio)
-   Derivadas (para MSE):
-     dJ/da = (2/N) * Σ (a*x_i + b - y_i) * x_i
-     dJ/db = (2/N) * Σ (a*x_i + b - y_i)
-   Atualização (FÓRMULA DO GD):
-     a = a - η * dJ/da
-     b = b - η * dJ/db
-   ----------------------------------------------- */
-static void gd_epoch(float *a, float *b)
+static void uma_epoca_descida_de_gradiente(float *a_centralizado, float *b_centralizado)
 {
-    double grad_a = 0.0;
-    double grad_b = 0.0;
+    double gradiente_a = 0.0;
+    double gradiente_b = 0.0;
 
-    int i = 0;
-    while (i < g_n) {
-        double y_hat = (double)(*a) * (double)g_x[i] + (double)(*b);
-        double e     = y_hat - (double)g_y[i];
-        grad_a = grad_a + e * (double)g_x[i];
-        grad_b = grad_b + e;
-        i = i + 1;
+    for (int i = 0; i < g_n; i++)
+    {
+        double u = (double)g_x_centralizado[i];         // u = x - média(x)
+        double y_pred = (double)(*a_centralizado) * u + (double)(*b_centralizado);
+        double erro = y_pred - (double)g_y[i];
+
+        gradiente_a += erro * u;   // dJ/da_c ∝ soma(erro * u)
+        gradiente_b += erro;       // dJ/db_c ∝ soma(erro)
     }
+    // se gradiente_a > 0, diminuímos a_c; se < 0, aumentamos a_c, o mesmo vale para b_c
+    gradiente_a = 2.0 * gradiente_a / (double)g_n;
+    gradiente_b = 2.0 * gradiente_b / (double)g_n;
 
-    /* (2/N) calculado toda vez de propósito (não otimizado) */
-    double invN = 1.0 / (double)g_n;
-    grad_a = 2.0 * invN * grad_a;
-    grad_b = 2.0 * invN * grad_b;
-
-    /* AQUI está a fórmula θ ← θ − α ∂J/∂θ */
-    *a = *a - (LEARNING_RATE * (float)grad_a);
-    *b = *b - (LEARNING_RATE * (float)grad_b);
+    *a_centralizado -= (TAXA_APRENDIZADO_INCLINACAO * (float)gradiente_a);
+    *b_centralizado -= (TAXA_APRENDIZADO_INTERCEPTO * (float)gradiente_b);
 }
 
-/* --------------------------
-   Treinamento por E épocas
-   -------------------------- */
-static void train(float *a_out, float *b_out)
+static void treinar_descida_de_gradiente(float *a_original, float *b_original)
 {
-    float a = 0.0f;  /* chutes simples */
-    float b = 0.0f;
+    float media_x = media(g_x, g_n);
+    float media_y = media(g_y, g_n);
 
-    int epoch = 0;
-    while (epoch < EPOCHS) {
-        gd_epoch(&a, &b);
+    for (int i = 0; i < g_n; i++)
+    {
+        g_x_centralizado[i] = g_x[i] - media_x;
+    }
 
-        if ((epoch % LOG_INTERVAL) == 0 || epoch == (EPOCHS - 1)) {
-            float j = mse(a, b);
-            printf("epoch %5d | a = %.7f  b = %.7f  | MSE = %.7f\n",
-                   epoch, a, b, j);
+    float a_c = 0.0f;
+    float b_c = media_y;
+
+    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++)
+    {
+        uma_epoca_descida_de_gradiente(&a_c, &b_c);
+
+        if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1))
+        {
+
+            float mse_centrado = erro_medio_quadratico(a_c, b_c, g_x_centralizado, g_y, g_n);
+
+            float a_temp = a_c;
+            float b_temp = b_c - a_c * media_x;
+            float mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
+
+            printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
+                "(original) a=%.6f b=%.6f | MSE=%.6f\n",
+                epoca, a_c, b_c, mse_centrado, a_temp, b_temp, mse_original);
         }
-        epoch = epoch + 1;
     }
 
-    *a_out = a;
-    *b_out = b;
+    *a_original = a_c;
+    *b_original = b_c - a_c * media_x;
 }
 
-/* ---------------
-   Programa principal
-   --------------- */
 int main(void)
 {
-    int n = load_csv(DATASET_PATH);
-    if (n <= 0) {
-        printf("Nenhuma linha valida lida de '%s'.\n", DATASET_PATH);
+    const char *caminho_csv = "../dataset.csv";
+
+    if (!carregar_csv(caminho_csv))
         return 1;
-    }
-    printf("Carregadas %d amostras de '%s'.\n", n, DATASET_PATH);
+    printf("Arquivo '%s' lido com sucesso (%d amostras)\n", caminho_csv, g_n);
+    
+    // parâmetros ajustados pelo algoritmo
+    // a = inclinação da reta, b = intercepto
+    float a_treinado = 0.0f, b_treinado = 0.0f;
+    treinar_descida_de_gradiente(&a_treinado, &b_treinado);
 
-    /* Treina (GD) */
-    float a_gd = 0.0f, b_gd = 0.0f;
-    train(&a_gd, &b_gd);
+    float a_referencia = 0.0f, b_referencia = 0.0f;
+    minimos_quadrados(&a_referencia, &b_referencia);
 
-    /* Referência por mínimos quadrados (validação) */
-    float a_ref = 0.0f, b_ref = 0.0f;
-    normal_equation(&a_ref, &b_ref);
+    float mse_final = erro_medio_quadratico(a_treinado, b_treinado, g_x, g_y, g_n); 
 
-    /* Relatório final */
-    float j_final = mse(a_gd, b_gd);
-    float ea = (a_ref != 0.0f) ? (a_gd - a_ref) / a_ref : 0.0f;
-    float eb = (b_ref != 0.0f) ? (b_gd - b_ref) / b_ref : 0.0f;
-
-    /* valores verdadeiros esperados do gerador: y = 2x + 1 (aprox.) */
-    const float A_TRUE = 2.0f;
-    const float B_TRUE = 1.0f;
-
-    printf("\n==== RESULTADOS (NAO OTIMIZADO) ====\n");
-    printf("GD:   a = %.7f, b = %.7f, MSE = %.7f\n", a_gd, b_gd, j_final);
-    printf("REF:  a* = %.7f, b* = %.7f  (minimos quadrados)\n", a_ref, b_ref);
-    printf("TRUE: aT = %.7f, bT = %.7f  (do gerador: y=2x+1)\n", A_TRUE, B_TRUE);
-    if (a_ref != 0.0f) ea = (a_gd - a_ref) / a_ref;
-    if (b_ref != 0.0f) eb = (b_gd - b_ref) / b_ref;
-    if (ea < 0) ea = -ea; if (eb < 0) eb = -eb;
-    printf("Erro relativo (GD vs REF): a = %.3e | b = %.3e\n", ea, eb);
+    printf("\n=== RESULTADOS FINAIS ===\n");
+    printf("Descida de Gradiente:  a = %.6f  b = %.6f  | MSE = %.6f\n", a_treinado, b_treinado, mse_final);
+    printf("Mínimos Quadrados:     a* = %.6f b* = %.6f\n", a_referencia, b_referencia);
+    printf("Modelo gerador (ideal): a = 2.000000  b = 1.000000  (y = 2x + 1)\n");
 
     return 0;
 }

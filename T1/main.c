@@ -4,7 +4,7 @@
 #define N 1000 
 
 // Array x[N] - Simples de 1.0 a 1000.0
-static double X[N] = {
+static double g_x[N] = {
         1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
         11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0,
         21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0,
@@ -108,7 +108,7 @@ static double X[N] = {
     };
 
 // Array y[N] - Com y = 2*x + 1 + ruido(+-0.5)
-static double Y[N] = {
+static double g_y[N] = {
         3.190011, 5.093333, 7.300582, 8.528399, 11.215570, 13.435728, 15.022987, 16.551006, 19.351651, 21.033669,
         23.411674, 24.814278, 27.207519, 29.350390, 31.003185, 33.394141, 35.346853, 37.199583, 39.043510, 41.288282,
         43.018598, 45.451870, 47.461247, 49.233066, 51.332470, 52.821594, 55.459345, 57.054082, 58.625354, 61.467882,
@@ -210,21 +210,51 @@ static double Y[N] = {
         1963.036666, 1964.551609, 1967.432651, 1969.498863, 1970.669894, 1973.049449, 1975.385078, 1977.164344, 1979.378903, 1980.999081,
         1982.887167, 1985.283120, 1987.050316, 1989.155702, 1991.380963, 1993.411674, 1995.303960, 1996.969698, 1998.823545, 2000.908271
     };
+/*
+  gd_linear_regression.c
+  --------------------------------------------
+  Regressão Linear 1D com Descida de Gradiente (GD) + Validação por solução fechada.
+  - Sem recursão
+  - Sem alocação dinâmica (apenas arrays estáticos)
+  - ~8 KB de dados: x[1000] + y[1000] = 2000 floats
+  - Dois laços aninhados: épocas x amostras
 
 typedef struct {
     double peso; // w
     double intercepto; // b
 } Modelo;
 
-double prever(const Modelo *m, double x) { return m->peso * x + m->intercepto; }
+#include <stdio.h>
 
-double mse(const Modelo *m, const double x[], const double y[], int n) {
-    double e = 0.0;
-    for (int i = 0; i < n; i++) {
-        double d = prever(m, x[i]) - y[i];
-        e += d * d;
+/* =========================
+   Configurações do experimento
+   ========================= */
+enum {
+    NUM_SAMPLES = 1000,    // N: número de amostras
+    NUM_EPOCHS  = 2000     // E: número de épocas de treinamento
+};
+
+#define LEARNING_RATE 0.05f    // η: taxa de aprendizado
+#define LOG_INTERVAL   128     // imprime a cada 128 épocas
+
+
+/* =========================
+   Utilidades simples
+   ========================= */
+static float f_absf(float v) { return (v < 0.0f) ? -v : v; }
+
+/* -----------------------------------------------------------------------------
+   mse
+   Calcula o erro quadrático médio (MSE) para parâmetros (a, b).
+   MSE = (1/N) * Σ (a*x_i + b - y_i)^2
+----------------------------------------------------------------------------- */
+static float mse(float a, float b) {
+    double acc = 0.0;
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        double e = (double)(a * g_x[i] + b) - (double)g_y[i];
+        acc += e * e;
     }
-    return e / n;
+    return (float)(acc / (double)NUM_SAMPLES);
 }
 
 void ajustar_ols(Modelo *m, const double x[], const double y[], int n) {
@@ -233,39 +263,102 @@ void ajustar_ols(Modelo *m, const double x[], const double y[], int n) {
     double mean_x = sumx / n;
     double mean_y = sumy / n;
 
-    double Sxx = 0.0, Sxy = 0.0;
-    for (int i = 0; i < n; i++) {
-        double xc = x[i] - mean_x;
-        double yc = y[i] - mean_y;
-        Sxx += xc * xc;
-        Sxy += xc * yc;
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        double x = g_x[i];
+        double y = g_y[i];
+        sx  += x;
+        sy  += y;
+        sxx += x * x;
+        sxy += x * y;
     }
 
     m->peso = Sxy / Sxx; // w
     m->intercepto = mean_y - m->peso * mean_x; // b
 }
 
-int main(void) {
+/* -----------------------------------------------------------------------------
+   gd_step_epoch
+   Executa UMA época de GD "batch" (gradiente médio) para (a, b).
+   Custo (a,b):
+     J(a,b) = (1/N) * Σ (a*x_i + b - y_i)^2
+   Gradientes:
+     ∂J/∂a = (2/N) * Σ (a*x_i + b - y_i) * x_i
+     ∂J/∂b = (2/N) * Σ (a*x_i + b - y_i)
+   Observação: Podemos omitir o fator 2 absorvendo-o na taxa de aprendizado.
+----------------------------------------------------------------------------- */
+static void gd_step_epoch(float *a, float *b) {
+    double grad_a = 0.0;
+    double grad_b = 0.0;
 
-    const double peso_real = 2.0;
-    const double intercepto_real = 1.0;
-    const double ruido_max = 0.5;
+    // Laço interno sobre as amostras (1º nível de aninhamento)
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        float y_hat = (*a) * g_x[i] + (*b);
+        float e = y_hat - g_y[i];
+        grad_a += (double)e * (double)g_x[i];
+        grad_b += (double)e;
+    }
 
     Modelo modelo;
     ajustar_ols(&modelo, X, Y, N);
 
-    printf("\n\n=== AJUSTE OLS ===\n\n");
-    printf("Peso: %.6f (esperado: %.2f)\n", modelo.peso, peso_real);
-    printf("Intercepto: %.6f (esperado: %.2f)\n", modelo.intercepto, intercepto_real);
-    printf("Erro (MSE): %.6f\n\n", mse(&modelo, X, Y, N));
+    // Atualização dos parâmetros (a, b)
+    *a -= LEARNING_RATE * (float)grad_a;
+    *b -= LEARNING_RATE * (float)grad_b;
+}
 
-    printf("Testando predições:\n");
-    double teste[] = {100.0, 500.0, 1000.0};
-    for (int i = 0; i < 3; i++) {
-        double p = prever(&modelo, teste[i]);
-        double r = peso_real * teste[i] + intercepto_real;
-        printf("x = %.1f -> y predito = %.2f (real seria: %.2f)\n", teste[i], p, r);
+/* -----------------------------------------------------------------------------
+   train_gd
+   Treina (a, b) por NUM_EPOCHS épocas usando GD "batch".
+   Estrutura de laços:
+     for epoch in [0..E-1]:      <-- laço externo (2º nível de aninhamento)
+         acumular gradientes em todas as amostras
+         atualizar (a, b)
+   Retorna os parâmetros ajustados.
+----------------------------------------------------------------------------- */
+static void train_gd(float *a_out, float *b_out) {
+    float a = 0.0f;  // chute inicial
+    float b = 0.0f;
+
+    for (int epoch = 0; epoch < NUM_EPOCHS; epoch++) {
+        gd_step_epoch(&a, &b);
+
+        if ((epoch % LOG_INTERVAL) == 0 || epoch == NUM_EPOCHS - 1) {
+            float err = mse(a, b);
+            printf("Epoch %4d | a=%.6f b=%.6f | MSE=%.8f\n", epoch, a, b, err);
+        }
     }
+
+    *a_out = a;
+    *b_out = b;
+}
+
+/* =========================
+   Ponto de entrada
+   ========================= */
+int main(void) {
+    // 2) Treinar por GD (laços aninhados: épocas x amostras)
+    float a_gd, b_gd;
+    train_gd(&a_gd, &b_gd);
+
+    // 3) Calcular solução de referência (fechada) para validar
+    float a_ref, b_ref;
+    normal_equation(&a_ref, &b_ref);
+
+    // 4) Métricas finais
+    float final_mse = mse(a_gd, b_gd);
+    float rel_a = f_absf(a_gd - a_ref) / (f_absf(a_ref) + 1e-9f);
+    float rel_b = f_absf(b_gd - b_ref) / (f_absf(b_ref) + 1e-9f);
+
+    // 5) Relatório
+    printf("\n=== RESULTADOS ===\n");
+    printf("GD:   a=%.6f  b=%.6f  MSE=%.8f\n", a_gd, b_gd, final_mse);
+    printf("REF:  a=%.6f  b=%.6f\n", a_ref, b_ref);
+    printf("Erro relativo: |a-a*|/|a*|=%.3e, |b-b*|/|b*|=%.3e\n", rel_a, rel_b);
+
+    // 6) Critério simples de aprovação (pode constar no relatório do T1)
+    const int ok_a = (rel_a < 1e-3f);
+    const int ok_b = (rel_b < 1e-3f);
+    printf("Validação: %s\n", (ok_a && ok_b) ? "APROVADO" : "REVER ETA/EPOCHS");
 
     return 0;
 }
