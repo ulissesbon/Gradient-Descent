@@ -42,9 +42,19 @@
 
 /* --------------------- Armazenamento estático (~8KB) ------------------ */
 
+// vetor de entradas (x) — valores do eixo horizontal.
+// exemplo: 1.0, 2.0, 3.0, ..., 1000.0
 static float g_x[QUANTIDADE_AMOSTRAS];            /* valores de entrada (x)        */
+
+// vetor de saídas (y) — valores medidos do dataset
+// exemplo: y = 2x + 1 + ruído
 static float g_y[QUANTIDADE_AMOSTRAS];            /* valores alvo (y)              */
+
+// vetor auxiliar: x centralizado (x - média(x))
+// equilibra o treinamento e evitar oscilações
 static float g_x_centralizado[QUANTIDADE_AMOSTRAS];/* x - media_x                   */
+
+// quantidade real de amostras
 static int   g_n = 0;                              /* número de amostras lidas      */
 
 /* --------------------- Leitura de CSV (simples) ----------------------- */
@@ -90,11 +100,11 @@ static float media(const float *v, int n) {
 static float erro_medio_quadratico(float a, float b, const float *x, const float *y, int n) {
     double soma = 0.0;
     for (int i = 0; i < n; i++) {
-        double y_pred = (double)a * (double)x[i] + (double)b;
-        double e = y_pred - (double)y[i];
-        soma += e * e;
+        double y_pred = (double)a * (double)x[i] + (double)b; // ← previsão: a*x + b
+        double e = y_pred - (double)y[i];                     // ← erro da amostra
+        soma += e * e;                                        // ← erro ao quadrado
     }
-    return (float)(soma / (double)n);
+    return (float)(soma / (double)n);                         // ← MSE: média dos quadrados
 }
 
 /* --------------------- Referência: mínimos quadrados ------------------ */
@@ -137,14 +147,16 @@ static void uma_epoca_descida_de_gradiente(float *a_centralizado,
     double gradiente_a = 0.0;
     double gradiente_b = 0.0;
 
-    for (int i = 0; i < g_n; i++) {
-        double u = (double)g_x_centralizado[i]; /* x - media_x */
+    for (int i = 0; i < g_n; i++)
+    {
+        double u = (double)g_x_centralizado[i];         // u = x - média(x)
         double y_pred = (double)(*a_centralizado) * u + (double)(*b_centralizado);
         double erro = y_pred - (double)g_y[i];
-        gradiente_a += erro * u;
-        gradiente_b += erro;
-    }
 
+        gradiente_a += erro * u;   // dJ/da_c ∝ soma(erro * u)
+        gradiente_b += erro;       // dJ/db_c ∝ soma(erro)
+    }
+    // se gradiente_a > 0, diminuímos a_c; se < 0, aumentamos a_c, o mesmo vale para b_c
     gradiente_a = 2.0 * gradiente_a / (double)g_n;
     gradiente_b = 2.0 * gradiente_b / (double)g_n;
 
@@ -206,6 +218,8 @@ int main(void) {
     if (!carregar_csv(caminho_csv)) return 1;
     printf("Arquivo '%s' lido com sucesso (%d amostras)\n", caminho_csv, g_n);
 
+    // parâmetros ajustados pelo algoritmo
+    // a = inclinação da reta, b = intercepto
     float a_treinado = 0.0f, b_treinado = 0.0f;
     treinar_descida_de_gradiente(&a_treinado, &b_treinado);
 
