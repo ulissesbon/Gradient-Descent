@@ -5,8 +5,10 @@ from matplotlib.animation import FuncAnimation
 #==== 1. Dados simulados ====
 np.random.seed(0)
 X = np.linspace(0, 10, 50)
-ruido = np.random.uniform(-0.5, 0.5, size=X.shape)
-Y = 2 * X + 1 + ruido   # função real: y = 2x + 1 + ruído
+a_origin = 2
+b_origin = 3
+ruido = np.random.uniform(-a_origin*0.25, a_origin*0.25, size=X.shape)
+Y = a_origin * X + b_origin + ruido   # função real: y = 2x + 1 + ruído
 
 # dados = np.loadtxt(f"data/dataset0.csv", delimiter=",", skiprows=1)
 # X = dados[:, 0].reshape(-1, 1)
@@ -31,7 +33,7 @@ def gradiente(a, b, x, y):
 
 # ==== 3. Hiperparâmetros ====
 alpha = 0.01     # taxa de aprendizado
-epocas = 10
+epocas = 50
 
 # ==== 4. Inicialização ====
 a, b = np.random.randn(2)
@@ -68,8 +70,8 @@ ax2.grid(True)
 
 
 # Campo de gradiente (opcional)
-A_vals = np.linspace(0, 4,20)
-B_vals = np.linspace(0, 3,20)
+A_vals = np.linspace(a_origin * 0.8, a_origin * 1.2, 20)
+B_vals = np.linspace(b_origin * 0.8, b_origin * 1.2, 20)
 AA, BB = np.meshgrid(A_vals, B_vals)
 
 # AA
