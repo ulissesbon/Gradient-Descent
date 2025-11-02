@@ -69,7 +69,7 @@ plot3(trajetoria(:,1), trajetoria(:,2), trajetoria(:,3), 'r.-', 'LineWidth',2, '
 scatter3(trajetoria(1,1), trajetoria(1,2), trajetoria(1,3), 60, 'filled', 'g') % início
 scatter3(trajetoria(end,1), trajetoria(end,2), trajetoria(end,3), 60, 'filled', 'r') % final
 legend('Superfície do Erro','Vetor Gradiente','Trajetória','Início','Mínimo','Location','northoutside')
-view(45, 45)
+view(0,90)
 
 grid on
 

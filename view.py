@@ -1,115 +1,202 @@
+"""
+Visualizador de Treinamento em C
+=================================
+Lê o histórico de treinamento gerado pelo código C e cria animações.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-#==== 1. Dados simulados ====
-np.random.seed(0)
-X = np.linspace(0, 10, 50)
-a_origin = 2
-b_origin = 3
-ruido = np.random.uniform(-a_origin*0.25, a_origin*0.25, size=X.shape)
-Y = a_origin * X + b_origin + ruido   # função real: y = 2x + 1 + ruído
 
-# dados = np.loadtxt(f"data/dataset0.csv", delimiter=",", skiprows=1)
-# X = dados[:, 0].reshape(-1, 1)
-# X = [X.round(decimals=6) for X in X]  # Evitar problemas de precisão
-# Y = dados[:, 1]
-# X = np.array(X).flatten()
-# Y = np.array(Y)
-
-# ==== 2. Funções auxiliares ====
-def prever(a, b, x):
-    return a * x + b
-
-def mse(a, b, x, y):
-    return np.mean((prever(a, b, x) - y)**2)
-
-def gradiente(a, b, x, y):
-    y_pred = prever(a, b, x)
-    erro = y_pred - y
-    da = (2/len(x)) * np.sum(erro * x)
-    db = (2/len(x)) * np.sum(erro)
-    return da, db
-
-# ==== 3. Hiperparâmetros ====
-alpha = 0.01     # taxa de aprendizado
-epocas = 50
-
-# ==== 4. Inicialização ====
-a, b = np.random.randn(2)
-historico = [(a, b, mse(a, b, X, Y))]
-
-# ==== 5. Treinamento ====
-for _ in range(epocas):
-    da, db = gradiente(a, b, X, Y)
-    a -= alpha * da
-    b -= alpha * db
-    historico.append((a, b, mse(a, b, X, Y)))
-
-# ==== 6. Preparar visualização ====
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 5))
-a_hist, b_hist, J_hist = zip(*historico)
-
-# Configuração do primeiro gráfico (reta ajustando aos dados)
-ax1.scatter(X, Y, color='blue', label='Dados reais')
-linha, = ax1.plot([], [], 'r-', lw=2, label='Reta estimada')
-ax1.set_xlim(min(X)-1, max(X)+1)
-ax1.set_ylim(min(Y)-1, max(Y)+1)
-ax1.set_title('Ajuste da reta via Descida de Gradiente')
-ax1.legend()
-ax1.grid(True)
-
-# Configuração do segundo gráfico (erro ao longo das iterações)
-ax2.set_xlim(0, epocas)
-ax2.set_ylim(0, max(J_hist))
-ax2.set_title('Evolução do Erro (MSE)')
-linha_erro, = ax2.plot([], [], 'g-', lw=2)
-ax2.set_xlabel('Época')
-ax2.set_ylabel('Erro (MSE)')
-ax2.grid(True)
+def carregar_dados_dataset(caminho_csv):
+    """Carrega os dados originais do dataset."""
+    dados = np.loadtxt(caminho_csv, delimiter=",", skiprows=1)
+    X = dados[:, 0]
+    Y = dados[:, 1]
+    return X, Y
 
 
-# Campo de gradiente (opcional)
-A_vals = np.linspace(a_origin * 0.8, a_origin * 1.2, 20)
-B_vals = np.linspace(b_origin * 0.8, b_origin * 1.2, 20)
-AA, BB = np.meshgrid(A_vals, B_vals)
+def carregar_historico_treinamento(caminho_historico):
+    """
+    Carrega o histórico de treinamento do arquivo CSV gerado pelo C.
+    
+    Formato esperado: epoca,a,b,mse
+    
+    Returns:
+        dict com arrays: epocas, valores_a, valores_b, valores_mse
+    """
+    dados = np.loadtxt(caminho_historico, delimiter=",", skiprows=1)
+    
+    return {
+        'epocas': dados[:, 0].astype(int),
+        'valores_a': dados[:, 1],
+        'valores_b': dados[:, 2],
+        'valores_mse': dados[:, 3]
+    }
 
-# AA
-# [0 1 2]
-# [0 1 2]
+
+def configurar_visualizacao(X, Y, historico):
+    """Configura os três subplots para animação."""
+    
+    epocas = historico['epocas']
+    valores_a = historico['valores_a']
+    valores_b = historico['valores_b']
+    valores_mse = historico['valores_mse']
+    
+    # Criar figura
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 5))
+    
+    # ---- SUBPLOT 1: Ajuste da reta ----
+    ax1.scatter(X, Y, color='blue', alpha=0.5, s=20, label='Dados reais')
+    linha_ajuste, = ax1.plot([], [], 'r-', linewidth=2.5, label='Reta treinada (C)')
+    ax1.set_xlim(X.min() - 1, X.max() + 1)
+    ax1.set_ylim(Y.min() - 10, Y.max() + 10)
+    ax1.set_xlabel('X', fontsize=11)
+    ax1.set_ylabel('Y', fontsize=11)
+    ax1.set_title('Ajuste da Reta (Código C)', fontsize=12, fontweight='bold')
+    ax1.legend(loc='upper left')
+    ax1.grid(True, alpha=0.3)
+    
+    # Texto para mostrar época e parâmetros
+    texto_params = ax1.text(0.02, 0.98, '', transform=ax1.transAxes,
+                           verticalalignment='top', fontsize=9,
+                           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+    # ---- SUBPLOT 2: Evolução do MSE ----
+    ax2.set_xlim(0, epocas[-1])
+    ax2.set_ylim(0, valores_mse[0] * 1.1)
+    ax2.set_xlabel('Época', fontsize=11)
+    ax2.set_ylabel('MSE (Erro Quadrático Médio)', fontsize=11)
+    ax2.set_title('Convergência do Erro', fontsize=12, fontweight='bold')
+    linha_mse, = ax2.plot([], [], 'g-', linewidth=2)
+    ponto_mse, = ax2.plot([], [], 'go', markersize=8)
+    ax2.grid(True, alpha=0.3)
+    
+    # ---- SUBPLOT 3: Trajetória no espaço de parâmetros ----
+    linha_trajetoria, = ax3.plot([], [], 'r.-', linewidth=1.5, markersize=5,
+                                  label='Trajetória (a, b)', alpha=0.7)
+    ponto_atual, = ax3.plot([], [], 'ro', markersize=10, label='Posição atual')
+    ax3.set_xlabel('Coeficiente Angular (a)', fontsize=11)
+    ax3.set_ylabel('Coeficiente Linear (b)', fontsize=11)
+    ax3.set_title('Espaço de Parâmetros', fontsize=12, fontweight='bold')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Adicionar campo de gradiente (opcional)
+    if len(valores_a) > 10:
+        passo = max(1, len(valores_a) // 20)
+        a_sample = valores_a[::passo]
+        b_sample = valores_b[::passo]
+        
+        # Calcular "direção" aproximada
+        da = np.diff(a_sample)
+        db = np.diff(b_sample)
+        
+        ax3.quiver(a_sample[:-1], b_sample[:-1], da, db,
+                   color='gray', alpha=0.3, scale_units='xy', scale=1,
+                   width=0.003)
+    
+    elementos = {
+        'linha_ajuste': linha_ajuste,
+        'texto_params': texto_params,
+        'linha_mse': linha_mse,
+        'ponto_mse': ponto_mse,
+        'linha_trajetoria': linha_trajetoria,
+        'ponto_atual': ponto_atual
+    }
+    
+    return fig, ax1, ax2, ax3, elementos
 
 
-# BB
-# [0 0 0]
-# [1 1 1]
+def atualizar_frame(frame_idx, X, Y, historico, elementos):
+    """Atualiza cada frame da animação."""
+    
+    epocas = historico['epocas']
+    valores_a = historico['valores_a']
+    valores_b = historico['valores_b']
+    valores_mse = historico['valores_mse']
+    
+    # Parâmetros atuais
+    a_atual = valores_a[frame_idx]
+    b_atual = valores_b[frame_idx]
+    epoca_atual = epocas[frame_idx]
+    mse_atual = valores_mse[frame_idx]
+    
+    # Atualizar reta de ajuste
+    Y_pred = a_atual * X + b_atual
+    elementos['linha_ajuste'].set_data(X, Y_pred)
+    
+    # Atualizar texto com parâmetros
+    texto = (f'Época: {epoca_atual}\n'
+             f'a = {a_atual:.6f}\n'
+             f'b = {b_atual:.6f}\n'
+             f'MSE = {mse_atual:.4f}')
+    elementos['texto_params'].set_text(texto)
+    
+    # Atualizar gráfico de MSE
+    epocas_ate_agora = epocas[:frame_idx + 1]
+    mse_ate_agora = valores_mse[:frame_idx + 1]
+    elementos['linha_mse'].set_data(epocas_ate_agora, mse_ate_agora)
+    elementos['ponto_mse'].set_data([epoca_atual], [mse_atual])
+    
+    # Atualizar trajetória
+    a_ate_agora = valores_a[:frame_idx + 1]
+    b_ate_agora = valores_b[:frame_idx + 1]
+    elementos['linha_trajetoria'].set_data(a_ate_agora, b_ate_agora)
+    elementos['ponto_atual'].set_data([a_atual], [b_atual])
+    
+    return (elementos['linha_ajuste'], elementos['texto_params'],
+            elementos['linha_mse'], elementos['ponto_mse'],
+            elementos['linha_trajetoria'], elementos['ponto_atual'])
 
 
-DA, DB = np.zeros_like(AA), np.zeros_like(BB)
-for i in range(AA.shape[0]): # rows
-    for j in range(AA.shape[1]): # cols
-        da, db = gradiente(AA[i,j], BB[i,j], X, Y)
-        DA[i,j], DB[i,j] = -da, -db  # direção de descida
+def main():
+    """Função principal."""
+    
+    # Configurações
+    DATASET = "data/dataset0.csv"
+    HISTORICO = "historico_treinamento.csv"
+    
+    print("=" * 70)
+    print("VISUALIZADOR DE TREINAMENTO EM C")
+    print("=" * 70)
+    
+    # Carregar dados
+    print("\n1. Carregando dataset...")
+    X, Y = carregar_dados_dataset(DATASET)
+    print(f"   ✓ {len(X)} amostras carregadas")
+    
+    print("\n2. Carregando histórico de treinamento...")
+    historico = carregar_historico_treinamento(HISTORICO)
+    print(f"   ✓ {len(historico['epocas'])} épocas registradas")
+    print(f"   - Parâmetros finais: a={historico['valores_a'][-1]:.6f}, "
+          f"b={historico['valores_b'][-1]:.6f}")
+    print(f"   - MSE inicial: {historico['valores_mse'][0]:.4f}")
+    print(f"   - MSE final: {historico['valores_mse'][-1]:.4f}")
+    
+    # Configurar visualização
+    print("\n3. Configurando visualização...")
+    fig, ax1, ax2, ax3, elementos = configurar_visualizacao(X, Y, historico)
+    
+    # Criar animação (mostrar 1 a cada 50 épocas para ser mais rápido)
+    passo = max(1, len(historico['epocas']) // 200)
+    frames_indices = range(0, len(historico['epocas']), passo)
+    
+    print(f"4. Gerando animação ({len(frames_indices)} frames)...")
+    animacao = FuncAnimation(
+        fig,
+        lambda frame: atualizar_frame(frame, X, Y, historico, elementos),
+        frames=frames_indices,
+        interval=50,  # 50ms entre frames
+        blit=True,
+        repeat=True
+    )
+    
+    plt.tight_layout()
+    print("\n✓ Animação pronta!\n")
+    plt.show()
 
-# ax3.figure(figsize=(6,5))
-ax3.quiver(AA, BB, DA, DB, color='gray', alpha=0.7)
-linha_var, = ax3.plot([], [], 'r.-', label='Caminho (a,b)')
-ax3.set_xlabel('a')
-ax3.set_ylabel('b')
-ax3.set_title('Campo de Gradiente e Caminho da Descida')
-ax3.legend()
-ax3.grid(True)
-# ax3.show()a.f
 
-# ==== 7. Função de animação ====
-def update(frame):
-    a, b = a_hist[frame], b_hist[frame]
-    y_pred = prever(a, b, X)
-    linha.set_data(X, y_pred)
-    linha_erro.set_data(range(frame+1), J_hist[:frame+1])
-    linha_var.set_data(a_hist[:frame+1], b_hist[:frame+1])
-    return linha, linha_erro, linha_var
-
-anim = FuncAnimation(fig, update, frames=len(a_hist), interval=500, blit=True)
-plt.tight_layout()
-plt.show()
-
+if __name__ == "__main__":
+    main()

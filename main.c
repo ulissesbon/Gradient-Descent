@@ -15,7 +15,6 @@
     - b  : intercepto da reta (valor de y quando x=0)
     - taxa_de_aprendizado_inclinacao  : passo de atualização para a
     - taxa_de_aprendizado_intercepto  : passo de atualização para b
-    - erro_medio_quadratico (MSE)     : média do quadrado do erro
     - x_centralizado = x - media_x    : ajuda a “desacoplar” a de b
     - b_original = b_centralizado - a_centralizado * media_x
 
@@ -28,16 +27,17 @@
 
 /* --------------------- Parâmetros do experimento --------------------- */
 
-#define QUANTIDADE_AMOSTRAS 1000
-#define QUANTIDADE_ARQUIVOS 4
-#define EPOCAS_TREINAMENTO  30000
+#define QUANTIDADE_ARQUIVOS 1
+#define QUANTIDADE_AMOSTRAS 10
+#define EPOCAS_TREINAMENTO  20
+#define ARQUIVO_HISTORICO "historico_treinamento.csv"
 
 /* Passos de atualização separados:
    - a (inclinação) precisa de passo pequeno (x pode ser grande)
    - b (intercepto) pode usar passo maior
 */
-#define TAXA_APRENDIZADO_INCLINACAO  1e-5f
-#define TAXA_APRENDIZADO_INTERCEPTO  1e-5f
+#define TAXA_APRENDIZADO_INCLINACAO  1e-1f
+#define TAXA_APRENDIZADO_INTERCEPTO  1e-1f
 
 #define INTERVALO_DE_LOG 5000
 
@@ -45,18 +45,18 @@
 
 // vetor de entradas (x) — valores do eixo horizontal.
 // exemplo: 1.0, 2.0, 3.0, ..., 1000.0
-static double g_x[QUANTIDADE_AMOSTRAS];            /* valores de entrada (x)        */
+static double g_x[QUANTIDADE_AMOSTRAS];
 
 // vetor de saídas (y) — valores medidos do dataset
 // exemplo: y = 2x + 1 + ruído
-static double g_y[QUANTIDADE_AMOSTRAS];            /* valores alvo (y)              */
+static double g_y[QUANTIDADE_AMOSTRAS];
 
 // vetor auxiliar: x centralizado (x - média(x))
 // equilibra o treinamento e evitar oscilações
-static double g_x_centralizado[QUANTIDADE_AMOSTRAS];/* x - media_x                   */
+static double g_x_centralizado[QUANTIDADE_AMOSTRAS];
 
 // quantidade real de amostras
-static int   g_n = 0;                              /* número de amostras lidas      */
+static int   g_n = 0;
 
 /* --------------------- Leitura de CSV (simples) ----------------------- */
 
@@ -127,6 +127,7 @@ static void uma_epoca_descida_de_gradiente(double *a_centralizado,
         gradiente_a += erro * u;   // dJ/da_c ∝ soma(erro * u)
         gradiente_b += erro;       // dJ/db_c ∝ soma(erro)
     }
+
     // se gradiente_a > 0, diminuímos a_c; se < 0, aumentamos a_c, o mesmo vale para b_c
     gradiente_a = 2.0 * gradiente_a / (double)g_n;
     gradiente_b = 2.0 * gradiente_b / (double)g_n;
@@ -147,12 +148,17 @@ static void uma_epoca_descida_de_gradiente(double *a_centralizado,
 */
 
 static void treinar_descida_de_gradiente(double *a_original,
-                                         double *b_original)
+                                         double *b_original,
+                                         const char *arquivo_historico)
 {
+    FILE *fp_hist = fopen(arquivo_historico, "w");
+    if (fp_hist) {
+        fprintf(fp_hist, "epoca,a,b,mse\n");
+    }
+
     double media_x = media(g_x, g_n);
     double media_y = media(g_y, g_n);
-    printf("x mean = %f, y mean = %f\n", media_x, media_y);
-
+    
     for (int i = 0; i < g_n; i++) {
         g_x_centralizado[i] = g_x[i] - media_x;
     }
@@ -163,17 +169,27 @@ static void treinar_descida_de_gradiente(double *a_original,
     for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
         uma_epoca_descida_de_gradiente(&a_c, &b_c);
 
-        if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1)) {
-            /* Converte para a escala original para inspecionar a e b “finais” */
-            double a_temp = a_c;
-            double b_temp = b_c - a_c * media_x;
+        // Calcular MSE
+        double mse = 0.0;
+        double a_temp = a_c;
+        double b_temp = b_c - a_c * media_x;
+        
+        for (int i = 0; i < g_n; i++) {
+            double y_pred = a_temp * g_x[i] + b_temp;
+            double erro = y_pred - g_y[i];
+            mse += erro * erro;
+        }
+        mse /= g_n;
 
-            // printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | "
-            //        "(original) a=%.6f b=%.6f ",
-            //        epoca, a_c, b_c, mse_centrado, a_temp, b_temp);
+        // Salvar no CSV
+        if (fp_hist) {
+            fprintf(fp_hist, "%d,%.10f,%.10f,%.10f\n", 
+                    epoca, a_temp, b_temp, mse);
         }
     }
 
+    if (fp_hist) fclose(fp_hist);
+    
     *a_original = a_c;
     *b_original = b_c - a_c * media_x;
 }
@@ -181,24 +197,19 @@ static void treinar_descida_de_gradiente(double *a_original,
 /* --------------------- Programa principal ----------------------------- */
 
 int main(void) {
-    const char *caminhos_csv[] = {
-        "data/dataset0.csv",
-        "data/dataset1.csv",
-        "data/dataset2.csv",
-        "data/dataset3.csv",
-    };
-
     for(volatile int i = 0; i < QUANTIDADE_ARQUIVOS; i++) {
-        if (!carregar_csv(caminhos_csv[i])) return 1;
+        char caminho[256];
+        sprintf(caminho, "data/dataset%d.csv", i);
+        if (!carregar_csv(caminho)) return 1;
         printf("\n(%d) - Descida de Gradiente (C) - Dataset%d:\n", i, i);
         
         // parâmetros ajustados pelo algoritmo
         // a = inclinação da reta, b = intercepto
         double a_treinado = 0.0f, b_treinado = 0.0f;
-        treinar_descida_de_gradiente(&a_treinado, &b_treinado);
+        treinar_descida_de_gradiente(&a_treinado, &b_treinado, ARQUIVO_HISTORICO);
         
         printf("a = %f  b = %f\n", a_treinado, b_treinado);
     }
-        
-        return 0;
+    
+    return 0;
 }

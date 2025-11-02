@@ -1,14 +1,16 @@
 import numpy as np
 
-a = [200, 600, 100, 300]
-b = [100, 700, 1000, 0]
-r = 0.5
+qtd_arquivos = 1
+qtd_linhas = 10
+a = [2, 60, 100, 300]
+b = [1, 70, 1000, 0]
+r = [x * 0.5 for x in b]  # Ruído proporcional a 'b'
 
-X_data = np.arange(1, 1001, dtype=np.float64)
+X_data = np.arange(1, qtd_linhas + 1, dtype=np.float64)
 
 # Gerar datasets
-for j in range(4):
-    Y_data = np.array([X_data[i] * a[j] + b[j] + np.random.normal(0, r) for i in range(len(X_data))], dtype=np.float64)
+for j in range(qtd_arquivos):
+    Y_data = np.array([X_data[i] * a[j] + b[j] + np.random.normal(0, r[j]) for i in range(len(X_data))], dtype=np.float64)
 
     # Empilha X e Y como colunas
     dados = np.column_stack((X_data, Y_data))

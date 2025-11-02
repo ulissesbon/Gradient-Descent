@@ -3,13 +3,16 @@ from sklearn.linear_model import SGDRegressor
 from sklearn.preprocessing import StandardScaler
 
 
+qtd_arquivos = 1
+epochs = 20
+taxa_aprendizado = 1e-1
+
 # === Dataset ===
-for i in range(4):
+for i in range(qtd_arquivos):
     dados = np.loadtxt(f"data/dataset{i}.csv", delimiter=",", skiprows=1)
     x = dados[:, 0].reshape(-1, 1)
     x = [x.round(decimals=6) for x in x]  # Evitar problemas de precisão
     y = dados[:, 1]
-    # print(f"dados {x[1]}")
 
     # Centralizar e normalizar (melhor para o SGDRegressor)
     scaler = StandardScaler(with_mean=True, with_std=True)
@@ -20,9 +23,9 @@ for i in range(4):
         alpha=0.0,
         penalty=None,
         learning_rate='constant',
-        eta0=1e-5,         # pode tentar 1e-6 se ainda oscilar
+        eta0=taxa_aprendizado,         # pode tentar 1e-6 se ainda oscilar
         shuffle=False,
-        max_iter=30000,
+        max_iter=epochs,
         tol=None,
         fit_intercept=True
     )
