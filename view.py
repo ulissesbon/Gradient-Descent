@@ -190,19 +190,21 @@ def main():
         fig,
         lambda frame: atualizar_frame(frame, X, Y, historico, elementos),
         frames=frames_indices,
-        interval=100,  # 10ms entre frames
+        interval=100,  # 100ms entre frames
         blit=True,
         repeat=True
     )
     
     plt.tight_layout()
-    
+    duracao_desejada = 5 # segundos
+    fps_desejado = len(frames_indices) / duracao_desejada
+
     # Salvar GIF se solicitado
     if SALVAR_GIF:
         print(f"\n5. Salvando animação como GIF...")
         print(f"   (Isso pode levar alguns minutos...)")
         try:
-            animacao.save(ARQUIVO_GIF, writer='pillow', fps=20, dpi=100)
+            animacao.save(ARQUIVO_GIF, writer='pillow', fps=fps_desejado, dpi=100)
             print(f"   ✓ GIF salvo em: {ARQUIVO_GIF}")
         except Exception as e:
             print(f"   ⚠️  Erro ao salvar GIF: {e}")
