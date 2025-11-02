@@ -57,7 +57,7 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 
 ### 🎬 Visualização do Treinamento
 
-![Animação do Treinamento](animacao_treinamento.gif)
+![Animação do Treinamento](docs/images/animacao_treinamento.gif)
 *Figura 2: Visualização do processo de treinamento mostrando o ajuste da reta, evolução do erro e trajetória no espaço de parâmetros*
 
 ---
