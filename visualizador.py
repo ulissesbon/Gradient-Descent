@@ -157,6 +157,8 @@ def main():
     # Configurações
     DATASET = "data/dataset0.csv"
     HISTORICO = "historico_treinamento.csv"
+    SALVAR_GIF = True
+    ARQUIVO_GIF = "animacao_treinamento.gif"
     
     print("=" * 70)
     print("VISUALIZADOR DE TREINAMENTO EM C")
@@ -194,6 +196,18 @@ def main():
     )
     
     plt.tight_layout()
+    
+    # Salvar GIF se solicitado
+    if SALVAR_GIF:
+        print(f"\n5. Salvando animação como GIF...")
+        print(f"   (Isso pode levar alguns minutos...)")
+        try:
+            animacao.save(ARQUIVO_GIF, writer='pillow', fps=20, dpi=100)
+            print(f"   ✓ GIF salvo em: {ARQUIVO_GIF}")
+        except Exception as e:
+            print(f"   ⚠️  Erro ao salvar GIF: {e}")
+            print(f"   Dica: Instale pillow com 'pip install pillow'")
+    
     print("\n✓ Animação pronta!\n")
     plt.show()
 

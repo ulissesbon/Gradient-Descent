@@ -1,132 +1,381 @@
-# Regressão Linear com Descida de Gradiente (C puro)
+# 📈 Regressão Linear com Descida de Gradiente
 
-Este projeto implementa, em **C puro**, a regressão linear 1D (`y ≈ a·x + b`) usando **Descida de Gradiente** (treino iterativo) e valida com a **solução fechada de mínimos quadrados** (referência). O foco é **clareza**: nomes descritivos, comentários e zero siglas obscuras.
+![Status](https://img.shields.io/badge/status-ativo-success.svg)
+![Linguagens](https://img.shields.io/badge/linguagens-C%20%7C%20Python-blue.svg)
+![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-green.svg)
 
----
+> Implementação completa de regressão linear usando o algoritmo de **Descida de Gradiente** (Gradient Descent) em C e Python, com visualização interativa do processo de treinamento.
 
-## O que é a regressão linear?
+## 👥 Autores
 
-É ajustar uma **reta** aos dados para **prever** `y` a partir de `x`:
-
-\[
-y \approx a \cdot x + b
-\]
-
-- `a` é a **inclinação** (o quanto `y` muda quando `x` aumenta 1).
-- `b` é o **intercepto** (valor de `y` quando `x = 0`).
-
-Uma imagem típica (linha ajustando pontos):
-
-- **Exemplo de reta de melhor ajuste** (imagem educacional):  
-  https://stats.libretexts.org/Bookshelves/Introductory_Statistics/Statistics%3A_Open_for_Everyone_%28Peter%29/13%3A_Simple_Linear_Regression/13.06%3A_Visualizing_Linear_Regression :contentReference[oaicite:0]{index=0}
-
-(Para imagens livres de uso que ilustram “linear regression”, você também pode explorar coleções como Pixabay.) :contentReference[oaicite:1]{index=1}
+- **Raquel Maciel**
+[![GitHub](https://img.shields.io/badge/GitHub-Raquel_Maciel-181717?logo=github)](https://github.com/raquelmcoelho)
+- **Ulisses Bonfim**
+[![GitHub](https://img.shields.io/badge/GitHub-Ulisses_Bonfim-181717?logo=github)](https://github.com/ulissesbon)
 
 ---
 
-## O que é “Descida de Gradiente”?
+## 📚 O que é Regressão Linear?
 
-É um método **iterativo** para **minimizar o erro**. Imagine o erro (por exemplo, o **erro médio quadrático**) como um “**terreno em formato de tigela**”; a cada passo, andamos na direção de maior **descida** desse terreno até chegar no fundo (mínimo).
+Regressão Linear é um método estatístico usado para modelar a relação entre uma variável dependente (y) e uma ou mais variáveis independentes (x). No caso mais simples (regressão linear simples), buscamos encontrar a melhor reta que se ajusta aos dados.
 
-- Explicação didática com texto/diagramas: **MIT – Intro to ML: Gradient Descent Notes**. :contentReference[oaicite:2]{index=2}
-- Conceito introdutório e definição simples: **GeeksforGeeks – What is Gradient Descent**. :contentReference[oaicite:3]{index=3}
-- Intuição da “tigela” do MSE (superfície convexa): discussão com ilustração. :contentReference[oaicite:4]{index=4}
+### 📐 Equação da Reta
 
-> Dica: procure por figuras “gradient descent bowl” (a “tigela” do erro) ou vetores/ícones “gradient descent” para slides. Repositórios de imagens livres: Pixabay/Freepik (verifique licenças). :contentReference[oaicite:5]{index=5}
+```
+y = a*x + b
+```
+
+Onde:
+- **a** (coeficiente angular): inclinação da reta
+- **b** (coeficiente linear): intercepto (valor de y quando x = 0)
+
+### 🎯 Objetivo
+
+Encontrar os valores de **a** e **b** que **minimizam o erro** entre os valores preditos pela reta e os valores reais dos dados.
+
+![Conceito de Regressão Linear](docs/images/regressao_linear_conceito.png)
+*Figura 1: Conceito de regressão linear - ajustar uma reta aos dados*
 
 ---
 
-## Como este código funciona (passo a passo)
+## 🧮 Descida de Gradiente
 
-1. **Lê o arquivo `dataset.csv`** no formato:
+A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimização que ajusta os parâmetros gradualmente:
 
-"""
+### 📊 Algoritmo
+
+1. **Inicializar** parâmetros (a = 0, b = média de y)
+2. **Calcular predições**: y_pred = a*x + b
+3. **Calcular erro**: MSE = (1/N) * Σ(y_pred - y_real)²
+4. **Calcular gradientes**:
+   - ∂MSE/∂a = (2/N) * Σ(erro * x)
+   - ∂MSE/∂b = (2/N) * Σ(erro)
+5. **Atualizar parâmetros**:
+   - a ← a - taxa_aprendizado * ∂MSE/∂a
+   - b ← b - taxa_aprendizado * ∂MSE/∂b
+6. **Repetir** passos 2-5 por N épocas
+
+### 🎬 Visualização do Treinamento
+
+![Animação do Treinamento](animacao_treinamento.gif)
+*Figura 2: Visualização do processo de treinamento mostrando o ajuste da reta, evolução do erro e trajetória no espaço de parâmetros*
+
+---
+
+## 🏗️ Estrutura do Projeto
+
+```
+.
+├── data/                          # Datasets gerados
+│   ├── dataset0.csv              # Dataset 1 (a=2, b=1)
+│   ├── dataset1.csv              # Dataset 2 (a=60, b=70)
+│   ├── dataset2.csv              # Dataset 3 (a=100, b=1000)
+│   └── dataset3.csv              # Dataset 4 (a=300, b=0)
+│
+├── docs/                          # Documentação e imagens
+│   └── images/
+│       └── regressao_linear_conceito.png
+│
+├── generate_data.py              # Gerador de datasets sintéticos
+├── main.c                        # Implementação em C
+├── main.py                       # Implementação em Python (sklearn)
+├── view.py                       # Visualizador interativo
+│
+├── historico_treinamento.csv    # Histórico exportado pelo C
+├── animacao_treinamento.gif     # Animação gerada pelo view.py
+│
+└── README.md                     # Este arquivo
+```
+
+---
+
+## 📥 Formato de Entrada
+
+Os datasets são arquivos CSV com duas colunas:
+
+```csv
 x,y
-1.000000,3.190011
-2.000000,5.093333
+1.0,3.2
+2.0,5.1
+3.0,7.0
+4.0,8.9
 ...
-"""
+```
 
-2. **Centraliza os valores de x**:  
-`x_centralizado = x - media(x)`  
-Isso “desacopla” a inclinação do intercepto e deixa a aprendizagem estável.
-3. **Treina iterativamente (Descida de Gradiente)**:  
-Atualiza `a` e `b` a cada época para reduzir o **erro médio quadrático (MSE)**.
-4. **Converte de volta para a escala original** (apenas no relatório):  
-Se treinamos com `x_centralizado = x - media_x`, então:  
-`a_final = a_centralizado`  
-`b_final = b_centralizado - a_centralizado * media_x`
-5. **Valida** comparando com a **solução fechada** (mínimos quadrados).  
-Os valores ficam muito próximos (diferenças vêm do ruído do dataset).
+Onde:
+- **x**: variável independente (feature)
+- **y**: variável dependente (target)
 
 ---
 
-## Por que centralizar `x`?
+## 📤 Formato de Saída
 
-Sem centralização, a atualização de `a` (que multiplica `x`) domina a de `b`, porque `x` pode ter valores altos. Ao centralizar, o algoritmo **consegue aprender `b` rapidamente** (ele fica próximo de `média(y)` quando `a` acerta).
+### Saída no Terminal (C)
+
+```
+=======================================================================
+  REGRESSÃO LINEAR COM DESCIDA DE GRADIENTE EM C
+=======================================================================
+  Autores: Raquel Maciel e Ulisses Bonfim
+=======================================================================
+
+📁 Dataset 0: data/dataset0.csv
+-----------------------------------------------------------------------
+  ✅ Carregado: 1000 amostras
+
+  📊 Estatísticas dos dados:
+     • Média de X: 500.500000
+     • Média de Y: 1002.000000
+
+  🔄 Treinando modelo (30000 épocas)...
+     Época      1/30000 - MSE: 334334.123456 - a: 0.020000, b: 1002.000000
+     Época   5001/30000 - MSE: 126.456789 - a: 1.980000, b: 3.456789
+     ...
+     Época  30000/30000 - MSE: 0.125678 - a: 2.000123, b: 0.998765
+
+  💾 Histórico salvo em: historico_treinamento.csv
+
+  ✨ RESULTADOS FINAIS:
+     • Equação da reta: y = 2.000123 * x + 0.998765
+     • Coeficiente angular (a): 2.000123
+     • Coeficiente linear (b):  0.998765
+
+=======================================================================
+```
+
+### Arquivo de Histórico (CSV)
+
+```csv
+epoca,a,b,mse
+0,0.0000000000,1002.0000000000,334334.1234567890
+1,0.0200000000,1001.9800000000,334120.5678901234
+2,0.0399800000,1001.9600200000,333907.0123456789
+...
+29999,2.0001234567,0.9987654321,0.1256789012
+```
+
+Colunas:
+- **epoca**: número da iteração
+- **a**: coeficiente angular na época
+- **b**: coeficiente linear na época  
+- **mse**: erro quadrático médio na época
 
 ---
 
-## Estrutura do código (arquivos)
+## 🚀 Como Usar
 
-- `gradient_descent_linear_regression.c` — tudo em um único arquivo: leitura do CSV, treino por descida de gradiente, equações normais (referência) e relatório final.
-- `dataset.csv` — seu conjunto de dados no formato `x,y` (a primeira linha é o cabeçalho).
-
----
-
-## Como compilar e executar
+### 1️⃣ Gerar Datasets
 
 ```bash
-# 1) coloque dataset.csv na mesma pasta
-# 2) compile (sem otimização, de propósito)
-gcc -O0 -std=c99 gradient_descent_linear_regression.c -o regress
+python generate_data.py
+```
 
-# 3) execute
-./regress
+Isso criará 4 datasets em `data/` com diferentes parâmetros de ruído e inclinação.
 
-Saída típica (resumo ao final):
-=== RESULTADOS FINAIS ===
-Descida de Gradiente:  a = 1.999956  b = 1.129028  | MSE = 0.073895
-Mínimos Quadrados:     a* = 1.999956 b* = 1.128980
-Modelo gerador (ideal): a = 2.000000  b = 1.000000
+### 2️⃣ Treinar Modelo em C
 
+```bash
+# Compilar
+gcc -o main main.c -lm
 
+# Executar
+./main
+```
 
-Formato do dataset.csv
+O programa irá:
+- Carregar os datasets
+- Treinar o modelo usando descida de gradiente
+- Salvar o histórico em `historico_treinamento.csv`
+- Exibir os parâmetros finais
 
-Primeira linha: x,y
+### 3️⃣ Treinar Modelo em Python (Comparação)
 
-Linhas seguintes: dois números em ponto flutuante separados por vírgula, por exemplo:
+```bash
+python main.py
+```
 
-1.000000,3.190011
-2.000000,5.093333
-...
+Use para comparar os resultados com a implementação em scikit-learn.
 
-Perguntas frequentes (bem diretas)
+### 4️⃣ Visualizar Treinamento
 
-Q: “Por que b fica errado quando não centralizo x?”
-A: Porque a atualização de a usa x (multiplicador), então domina a de b. Centralizar equilibra as duas.
+```bash
+python view.py
+```
 
-Q: “Isso é ‘otimização’?”
-A: Não no sentido de micro-otimização de código. É só deixar o problema bem condicionado para o método iterativo funcionar de forma estável.
+Isso irá:
+- Carregar o histórico gerado pelo C
+- Criar visualização interativa com 3 gráficos
+- Salvar animação em `animacao_treinamento.gif`
+- Exibir janela com a animação
 
-Q: “Posso medir um antes/depois?”
-A: Sim. Rode uma versão sem centralização (baseline) e compare convergência, épocas e MSE final.
+---
 
-Leituras e imagens úteis
+## 📊 Visualizações
 
-Visualização de regressão linear (educacional): LibreTexts. 
-Statistics LibreTexts
-https://stats.libretexts.org/Bookshelves/Introductory_Statistics/Statistics%3A_Open_for_Everyone_%28Peter%29/13%3A_Simple_Linear_Regression/13.06%3A_Visualizing_Linear_Regression
+O `view.py` gera três visualizações simultâneas:
 
-Conceito de Descida de Gradiente (texto atualizado): GeeksforGeeks. 
-GeeksforGeeks
-https://www.geeksforgeeks.org/data-science/what-is-gradient-descent/
+### 1. Ajuste da Reta
+Mostra como a reta se ajusta aos dados ao longo das épocas.
 
-Notas didáticas (algoritmo e variações): MIT Intro to ML. 
-introml.mit.edu
-https://introml.mit.edu/notes/gradient_descent.html
+### 2. Evolução do Erro (MSE)
+Gráfico mostrando a redução do erro ao longo do treinamento.
 
-“Tigela” do erro (MSE): discussão com figura (bowl-shaped surface). 
-Cross Validated
-https://stats.stackexchange.com/questions/597520/why-mean-squared-error-surface-takes-bowl-shape
+### 3. Espaço de Parâmetros
+Trajetória dos parâmetros (a, b) durante a otimização, com campo de gradiente.
+
+---
+
+## ⚙️ Configurações
+
+### Em C (`main.c`)
+
+```c
+#define QUANTIDADE_ARQUIVOS 1        // Número de datasets
+#define QUANTIDADE_AMOSTRAS 1000     // Amostras por dataset
+#define EPOCAS_TREINAMENTO  30000    // Iterações de treinamento
+#define TAXA_APRENDIZADO_INCLINACAO  1e-5  // Learning rate para a
+#define TAXA_APRENDIZADO_INTERCEPTO  1e-5  // Learning rate para b
+```
+
+### Em Python (`generate_data.py`)
+
+```python
+QUANTIDADE_ARQUIVOS = 4
+QUANTIDADE_AMOSTRAS = 1000
+COEFICIENTES_ANGULARES = [2, 60, 100, 300]
+COEFICIENTES_LINEARES = [1, 70, 1000, 0]
+PROPORCAO_RUIDO = 0.5
+```
+
+---
+
+## 📦 Dependências
+
+### Python
+
+```bash
+pip install numpy matplotlib scikit-learn pillow
+```
+
+- **numpy**: operações numéricas
+- **matplotlib**: visualizações e animações
+- **scikit-learn**: comparação com SGDRegressor
+- **pillow**: salvar animação como GIF
+
+### C
+
+- **GCC** ou outro compilador C
+- Biblioteca matemática padrão (`-lm`)
+
+---
+
+## 🎓 Conceitos Implementados
+
+- ✅ Regressão Linear Simples
+- ✅ Descida de Gradiente (Gradient Descent)
+- ✅ Centralização de Dados (Data Centering)
+- ✅ Função de Custo: MSE (Mean Squared Error)
+- ✅ Taxa de Aprendizado (Learning Rate)
+- ✅ Exportação de Histórico de Treinamento
+- ✅ Visualização Interativa
+- ✅ Comparação entre Implementações (C vs Python)
+
+---
+
+## 🔬 Técnicas Utilizadas
+
+### Centralização de X
+
+```
+x_centralizado = x - média(x)
+```
+
+**Por quê?** Desacopla os parâmetros a e b, melhorando a convergência.
+
+### Inicialização Inteligente
+
+```c
+a_inicial = 0.0
+b_inicial = média(y)
+```
+
+**Por quê?** Começa próximo da solução, acelerando o treinamento.
+
+### Conversão de Escala
+
+Após treinar no espaço centralizado, convertemos de volta:
+
+```
+a_original = a_centralizado
+b_original = b_centralizado - a_centralizado * média(x)
+```
+
+---
+
+## 📈 Resultados Esperados
+
+Para o dataset com **a = 2** e **b = 1**:
+
+| Métrica | Valor Esperado | Típico após 30k épocas |
+|---------|---------------|------------------------|
+| a (inclinação) | 2.0 | 1.998 - 2.002 |
+| b (intercepto) | 1.0 | 0.998 - 1.002 |
+| MSE final | ~0 | 0.1 - 0.5 |
+
+---
+
+## 🐛 Troubleshooting
+
+### Problema: "Erro ao abrir arquivo CSV"
+**Solução**: Certifique-se de que a pasta `data/` existe e execute `generate_data.py` primeiro.
+
+### Problema: "MSE não converge"
+**Solução**: Reduza a taxa de aprendizado ou aumente o número de épocas.
+
+### Problema: "GIF não é salvo"
+**Solução**: Instale pillow: `pip install pillow`
+
+### Problema: "Valores oscilam muito"
+**Solução**: Use taxas de aprendizado menores (ex: 1e-6 ou 1e-7).
+
+---
+
+## 📖 Referências
+
+- [Gradient Descent - Wikipedia](https://en.wikipedia.org/wiki/Gradient_descent)
+- [Linear Regression - Scikit-learn](https://scikit-learn.org/stable/modules/linear_model.html)
+- [An Introduction to Gradient Descent](https://developers.google.com/machine-learning/crash-course/reducing-loss/gradient-descent)
+
+---
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT. Sinta-se livre para usar, modificar e distribuir.
+
+---
+
+## 🤝 Contribuições
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+- Reportar bugs
+- Sugerir melhorias
+- Adicionar novas funcionalidades
+- Melhorar a documentação
+
+---
+
+## 📧 Contato
+
+Para dúvidas ou sugestões, entre em contato com os autores:
+- **Raquel Maciel**
+- **Ulisses Bonfim**
+
+---
+
+<div align="center">
+
+**Desenvolvido com ❤️ usando C e Python**
+
+⭐ Se este projeto foi útil, considere dar uma estrela!
+
+</div>
