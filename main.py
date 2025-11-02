@@ -35,4 +35,6 @@ for i in range(4):
     a = a_c / scaler.scale_[0]
     b = b_c - a * scaler.mean_[0]
 
+    print(f"\n({i}) - Descida de Gradiente (Python) - Dataset{i}:")
+    print(f"x mean = {scaler.mean_[0]}, y mean = {b_c}")
     print(f"a={a}, b={b}")

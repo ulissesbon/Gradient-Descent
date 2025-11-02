@@ -151,6 +151,7 @@ static void treinar_descida_de_gradiente(double *a_original,
 {
     double media_x = media(g_x, g_n);
     double media_y = media(g_y, g_n);
+    printf("x mean = %f, y mean = %f\n", media_x, media_y);
 
     for (int i = 0; i < g_n; i++) {
         g_x_centralizado[i] = g_x[i] - media_x;
@@ -163,17 +164,13 @@ static void treinar_descida_de_gradiente(double *a_original,
         uma_epoca_descida_de_gradiente(&a_c, &b_c);
 
         if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1)) {
-            /* Métrica no espaço centrado (opcional) */
-            double mse_centrado = erro_medio_quadratico(a_c, b_c, g_x_centralizado, g_y, g_n);
-
             /* Converte para a escala original para inspecionar a e b “finais” */
             double a_temp = a_c;
             double b_temp = b_c - a_c * media_x;
-            double mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
 
-            // printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
-            //        "(original) a=%.6f b=%.6f | MSE=%.6f\n",
-            //        epoca, a_c, b_c, mse_centrado, a_temp, b_temp, mse_original);
+            // printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | "
+            //        "(original) a=%.6f b=%.6f ",
+            //        epoca, a_c, b_c, mse_centrado, a_temp, b_temp);
         }
     }
 
@@ -193,13 +190,14 @@ int main(void) {
 
     for(volatile int i = 0; i < QUANTIDADE_ARQUIVOS; i++) {
         if (!carregar_csv(caminhos_csv[i])) return 1;
+        printf("\n(%d) - Descida de Gradiente (C) - Dataset%d:\n", i, i);
         
         // parâmetros ajustados pelo algoritmo
         // a = inclinação da reta, b = intercepto
         double a_treinado = 0.0f, b_treinado = 0.0f;
         treinar_descida_de_gradiente(&a_treinado, &b_treinado);
         
-        printf("Descida de Gradiente:  a = %f  b = %f ", a_treinado, b_treinado);
+        printf("a = %f  b = %f\n", a_treinado, b_treinado);
     }
         
         return 0;
