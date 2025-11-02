@@ -30,13 +30,13 @@
 /* ========================================================================== */
 
 /* Quantidade de datasets a processar */
-#define QUANTIDADE_ARQUIVOS 1
+#define QUANTIDADE_ARQUIVOS 4
 
 /* Número de amostras por dataset */
 #define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 30000
+#define EPOCAS_TREINAMENTO 20
 
 /* Arquivo de saída com histórico do treinamento */
 #define ARQUIVO_HISTORICO "historico_treinamento.csv"

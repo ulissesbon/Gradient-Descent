@@ -155,7 +155,7 @@ def main():
     """Função principal."""
     
     # Configurações
-    DATASET = "data/dataset0.csv"
+    DATASET = "data/dataset3.csv"
     HISTORICO = "historico_treinamento.csv"
     SALVAR_GIF = True
     ARQUIVO_GIF = "animacao_treinamento.gif"
@@ -190,7 +190,7 @@ def main():
         fig,
         lambda frame: atualizar_frame(frame, X, Y, historico, elementos),
         frames=frames_indices,
-        interval=50,  # 50ms entre frames
+        interval=100,  # 10ms entre frames
         blit=True,
         repeat=True
     )
