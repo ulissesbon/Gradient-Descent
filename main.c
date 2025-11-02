@@ -29,6 +29,7 @@
 /* --------------------- Parâmetros do experimento --------------------- */
 
 #define QUANTIDADE_AMOSTRAS 1000
+#define QUANTIDADE_ARQUIVOS 4
 #define EPOCAS_TREINAMENTO  30000
 
 /* Passos de atualização separados:
@@ -36,7 +37,7 @@
    - b (intercepto) pode usar passo maior
 */
 #define TAXA_APRENDIZADO_INCLINACAO  1e-5f
-#define TAXA_APRENDIZADO_INTERCEPTO  1e-2f
+#define TAXA_APRENDIZADO_INTERCEPTO  1e-5f
 
 #define INTERVALO_DE_LOG 5000
 
@@ -95,36 +96,6 @@ static double media(const double *v, int n) {
     double soma = 0.0;
     for (int i = 0; i < n; i++) soma += (double)v[i];
     return (double)(soma / (double)n);
-}
-
-static double erro_medio_quadratico(double a, double b, const double *x, const double *y, int n) {
-    double soma = 0.0;
-    for (int i = 0; i < n; i++) {
-        double y_pred = (double)a * (double)x[i] + (double)b; // ← previsão: a*x + b
-        double e = y_pred - (double)y[i];                     // ← erro da amostra
-        soma += e * e;                                        // ← erro ao quadrado
-    }
-    return (double)(soma / (double)n);                         // ← MSE: média dos quadrados
-}
-
-/* --------------------- Referência: mínimos quadrados ------------------ */
-/* Resolve a* e b* analiticamente (para validação) sobre (g_x, g_y).     */
-
-static void minimos_quadrados(double *a_ref, double *b_ref) {
-    double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
-    for (int i = 0; i < g_n; i++) {
-        double x = (double)g_x[i];
-        double y = (double)g_y[i];
-        sx  += x;
-        sy  += y;
-        sxx += x * x;
-        sxy += x * y;
-    }
-    double denom = (double)g_n * sxx - sx * sx;
-    double a = ((double)g_n * sxy - sx * sy) / denom;
-    double b = (sy - a * sx) / (double)g_n;
-    *a_ref = (double)a;
-    *b_ref = (double)b;
 }
 
 /* --------------------- Uma época de descida de gradiente -------------- */
@@ -200,9 +171,9 @@ static void treinar_descida_de_gradiente(double *a_original,
             double b_temp = b_c - a_c * media_x;
             double mse_original = erro_medio_quadratico(a_temp, b_temp, g_x, g_y, g_n);
 
-            printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
-                   "(original) a=%.6f b=%.6f | MSE=%.6f\n",
-                   epoca, a_c, b_c, mse_centrado, a_temp, b_temp, mse_original);
+            // printf("época %5d | (centrado) a_c=%.6f b_c=%.6f | MSEc=%.6f | "
+            //        "(original) a=%.6f b=%.6f | MSE=%.6f\n",
+            //        epoca, a_c, b_c, mse_centrado, a_temp, b_temp, mse_original);
         }
     }
 
@@ -213,25 +184,23 @@ static void treinar_descida_de_gradiente(double *a_original,
 /* --------------------- Programa principal ----------------------------- */
 
 int main(void) {
-    const char *caminho_csv = "../dataset.csv";
+    const char *caminhos_csv[] = {
+        "data/dataset0.csv",
+        "data/dataset1.csv",
+        "data/dataset2.csv",
+        "data/dataset3.csv",
+    };
 
-    if (!carregar_csv(caminho_csv)) return 1;
-    printf("Arquivo '%s' lido com sucesso (%d amostras)\n", caminho_csv, g_n);
-
-    // parâmetros ajustados pelo algoritmo
-    // a = inclinação da reta, b = intercepto
-    double a_treinado = 0.0f, b_treinado = 0.0f;
-    treinar_descida_de_gradiente(&a_treinado, &b_treinado);
-
-    double a_referencia = 0.0f, b_referencia = 0.0f;
-    minimos_quadrados(&a_referencia, &b_referencia);
-
-    double mse_final = erro_medio_quadratico(a_treinado, b_treinado, g_x, g_y, g_n);
-
-    printf("\n=== RESULTADOS FINAIS ===\n");
-    printf("Descida de Gradiente:  a = %.6f  b = %.6f  | MSE = %.6f\n", a_treinado, b_treinado, mse_final);
-    printf("Mínimos Quadrados:     a* = %.6f b* = %.6f\n", a_referencia, b_referencia);
-    printf("Modelo gerador (ideal): a = 2.000000  b = 1.000000  (y = 2x + 1)\n");
-
-    return 0;
+    for(volatile int i = 0; i < QUANTIDADE_ARQUIVOS; i++) {
+        if (!carregar_csv(caminhos_csv[i])) return 1;
+        
+        // parâmetros ajustados pelo algoritmo
+        // a = inclinação da reta, b = intercepto
+        double a_treinado = 0.0f, b_treinado = 0.0f;
+        treinar_descida_de_gradiente(&a_treinado, &b_treinado);
+        
+        printf("Descida de Gradiente:  a = %f  b = %f ", a_treinado, b_treinado);
+    }
+        
+        return 0;
 }
