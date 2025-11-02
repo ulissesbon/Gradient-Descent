@@ -1,17 +1,17 @@
 clear; clc; close all;
 
 %% 1️⃣ Gerar dados simulados (reta real com ruído)
-x = linspace(0, 10, 1000)';
-y_real = 2*x + 1;
-ruido = rand(size(x)) - 0.5; % ruído entre -0.5 e 0.5
-y = y_real + ruido;
+dados = csvread('data/dataset0.csv', 1, 0); % pula 1 linha (cabeçalho)
+x = dados(:,1);
+y = dados(:,2);
+
 
 %% 2️⃣ Função de custo (erro quadrático médio)
 J = @(a,b) mean((y - (a*x + b)).^2);
 
 %% 3️⃣ Geração de grade para visualizar a topologia 3D
-a_vals = linspace(0, 4, 80);
-b_vals = linspace(0, 3, 80);
+a_vals = linspace(-200, 600, 100);
+b_vals = linspace(-100, 300, 100);
 [A,B] = meshgrid(a_vals, b_vals);
 
 J_vals = zeros(size(A));
@@ -30,6 +30,13 @@ xlabel('a (inclinação)'), ylabel('b (intercepto)'), zlabel('Erro J(a,b)')
 title('Superfície do Erro Quadrático Médio')
 colormap('turbo')
 hold on
+
+figure;
+contour(A,B,J_vals,30); hold on;
+plot(trajetoria(:,1),trajetoria(:,2),'r.-','LineWidth',2);
+quiver(a,b,-da,-db,0.2,'k','LineWidth',1);
+xlabel('a'); ylabel('b'); title('Curvas de Nível e Direção do Gradiente');
+
 
 %% 6️⃣ Ponto inicial e parâmetros do gradiente
 a = 0; b = 0; alpha = 0.05; % taxa de aprendizado
@@ -55,6 +62,7 @@ for i = 1:n_iter
     pause(0.2)
 
 end
+
 
 %% 7️⃣ Mostrar trajetória do ponto descendo o vale
 plot3(trajetoria(:,1), trajetoria(:,2), trajetoria(:,3), 'r.-', 'LineWidth',2, 'MarkerSize',12)
