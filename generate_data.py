@@ -207,11 +207,11 @@ def main():
     
     # Criar diretório de saída
     criar_diretorio_se_necessario(config.DIRETORIO_SAIDA)
-    print(f"\n📁 Diretório de saída: {config.DIRETORIO_SAIDA}/")
+    print(f"\n Diretório de saída: {config.DIRETORIO_SAIDA}/")
     
     # Gerar valores de X (compartilhados por todos os datasets)
     valores_x = gerar_valores_x(config.QUANTIDADE_AMOSTRAS)
-    print(f"📊 Gerando {config.QUANTIDADE_ARQUIVOS} dataset(s) com "
+    print(f" Gerando {config.QUANTIDADE_ARQUIVOS} dataset(s) com "
           f"{config.QUANTIDADE_AMOSTRAS} amostras cada...")
     
     # Gerar cada dataset
@@ -228,7 +228,7 @@ def main():
         # Exibir resumo
         exibir_resumo_dataset(indice, parametros, len(x))
     
-    print("\n✅ Todos os datasets foram gerados com sucesso!\n")
+    print("\n Todos os datasets foram gerados com sucesso!\n")
 
 
 if __name__ == "__main__":

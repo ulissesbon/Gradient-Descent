@@ -208,7 +208,7 @@ def main():
             animacao.save(ARQUIVO_GIF, writer='pillow', fps=fps_desejado, dpi=100)
             print(f"   ✓ GIF salvo em: {ARQUIVO_GIF}")
         except Exception as e:
-            print(f"   ⚠️  Erro ao salvar GIF: {e}")
+            print(f"   Erro ao salvar GIF: {e}")
             print(f"   Dica: Instale pillow com 'pip install pillow'")
     
     print("\n✓ Animação pronta!\n")

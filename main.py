@@ -255,7 +255,7 @@ def processar_dataset(indice, config):
     
     # Verificar se arquivo existe
     if not Path(caminho_arquivo).exists():
-        print(f"\n⚠️  Arquivo não encontrado: {caminho_arquivo}")
+        print(f"\n  Arquivo não encontrado: {caminho_arquivo}")
         return None
     
     # 1. Carregar dados
@@ -305,7 +305,7 @@ def main():
     # Carregar configurações
     config = ConfiguracaoTreinamento()
     
-    print(f"\n⚙️  Configurações:")
+    print(f"\n  Configurações:")
     print(f"  • Taxa de aprendizado: {config.TAXA_APRENDIZADO}")
     print(f"  • Número de épocas: {config.NUMERO_EPOCAS}")
     print(f"  • Datasets a processar: {config.QUANTIDADE_ARQUIVOS}")
@@ -323,7 +323,7 @@ def main():
     print("\n" + "=" * 70)
     print("RESUMO FINAL")
     print("=" * 70)
-    print(f"✅ {len(todos_resultados)} dataset(s) processado(s) com sucesso!")
+    print(f" {len(todos_resultados)} dataset(s) processado(s) com sucesso!")
     
     for res in todos_resultados:
         print(f"\n  Dataset {res['indice']}: "

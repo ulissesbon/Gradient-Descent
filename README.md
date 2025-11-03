@@ -91,7 +91,6 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 ├── main.py                          # Implementação em Python (sklearn)
 ├── view.py                          # Visualizador interativo
 │
-├── historico_treinamento.csv        # Histórico exportado pelo C
 ├── animacao_treinamento_exemplo.gif # Animação gerada pelo view.py
 |
 ├── run_ubuntu.sh                    # Comandos de execução (ubuntu)
@@ -132,23 +131,23 @@ Onde:
   Autores: Raquel Maciel e Ulisses Bonfim
 =======================================================================
 
-📁 Dataset 0: data/dataset0.csv
+ Dataset 0: data/dataset0.csv
 -----------------------------------------------------------------------
-  ✅ Carregado: 1000 amostras
+   Carregado: 1000 amostras
 
-  📊 Estatísticas dos dados:
+   Estatísticas dos dados:
      • Média de X: 500.500000
      • Média de Y: 1002.000000
 
-  🔄 Treinando modelo (30000 épocas)...
+   Treinando modelo (30000 épocas)...
      Época      1/30000 - MSE: 334334.123456 - a: 0.020000, b: 1002.000000
      Época   5001/30000 - MSE: 126.456789 - a: 1.980000, b: 3.456789
      ...
      Época  30000/30000 - MSE: 0.125678 - a: 2.000123, b: 0.998765
 
-  💾 Histórico salvo em: historico_treinamento.csv
+   Histórico salvo em: historico/historico_treinamento0.csv
 
-  ✨ RESULTADOS FINAIS:
+   RESULTADOS FINAIS:
      • Equação da reta: y = 2.000123 * x + 0.998765
      • Coeficiente angular (a): 2.000123
      • Coeficiente linear (b):  0.998765
@@ -198,7 +197,7 @@ gcc -o main main.c -lm
 O programa irá:
 - Carregar os datasets
 - Treinar o modelo usando descida de gradiente
-- Salvar o histórico em `historico_treinamento.csv`
+- Salvar o histórico em `historico/historico_treinamento_dataset0.csv`
 - Exibir os parâmetros finais
 
 ### 3️⃣ Treinar Modelo em Python (Comparação)
@@ -265,7 +264,6 @@ QUANTIDADE_ARQUIVOS = 4    # Número de datasets
 QUANTIDADE_AMOSTRAS = 1000 # Amostras por dataset
 COEFICIENTES_ANGULARES = [2, 60, 100, 300]
 COEFICIENTES_LINEARES = [1, 70, 1000, 0]
-PROPORCAO_RUIDO = 0.5
 ```
 
 ### Em Python (`view.py`)

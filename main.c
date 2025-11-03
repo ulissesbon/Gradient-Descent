@@ -386,7 +386,7 @@ int main(void) {
         snprintf(caminho_historico, sizeof(caminho_historico), 
                  "historico/historico_treinamento_dataset%d.csv", i);
 
-        printf("📁 Dataset %d: %s\n", i, caminho_dataset);
+        printf(" Dataset %d: %s\n", i, caminho_dataset);
         printf("-----------------------------------------------------------------------\n");
 
         /* Carregar dados do CSV */
