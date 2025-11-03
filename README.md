@@ -236,22 +236,31 @@ Trajetória dos parâmetros (a, b) durante a otimização, com campo de gradient
 ### Em C (`main.c`)
 
 ```c
-#define QUANTIDADE_ARQUIVOS 1        // Número de datasets
+#define QUANTIDADE_ARQUIVOS 4        // Número de datasets
 #define QUANTIDADE_AMOSTRAS 1000     // Amostras por dataset
-#define EPOCAS_TREINAMENTO  30000    // Iterações de treinamento
+#define EPOCAS_TREINAMENTO  20       // Iterações de treinamento
 #define TAXA_APRENDIZADO_INCLINACAO  1e-5  // Learning rate para a
 #define TAXA_APRENDIZADO_INTERCEPTO  1e-5  // Learning rate para b
+```
+
+### Em Python (`main.py`)
+
+```python
+QUANTIDADE_ARQUIVOS = 4  # Número de datasets
+NUMERO_EPOCAS = 20       # Iterações de treinamento
+TAXA_APRENDIZADO = 1e-5  # Learning rate para a e b
 ```
 
 ### Em Python (`generate_data.py`)
 
 ```python
-QUANTIDADE_ARQUIVOS = 4
-QUANTIDADE_AMOSTRAS = 1000
+QUANTIDADE_ARQUIVOS = 4    # Número de datasets
+QUANTIDADE_AMOSTRAS = 1000 # Amostras por dataset
 COEFICIENTES_ANGULARES = [2, 60, 100, 300]
 COEFICIENTES_LINEARES = [1, 70, 1000, 0]
 PROPORCAO_RUIDO = 0.5
 ```
+
 
 ---
 
@@ -351,12 +360,6 @@ Para o dataset com **a = 2** e **b = 1**:
 - [Gradient Descent - Wikipedia](https://en.wikipedia.org/wiki/Gradient_descent)
 - [Linear Regression - Scikit-learn](https://scikit-learn.org/stable/modules/linear_model.html)
 - [An Introduction to Gradient Descent](https://developers.google.com/machine-learning/crash-course/reducing-loss/gradient-descent)
-
----
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT. Sinta-se livre para usar, modificar e distribuir.
 
 ---
 
