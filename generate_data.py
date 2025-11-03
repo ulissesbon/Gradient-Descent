@@ -22,7 +22,7 @@ class ConfiguracaoDataset:
     QUANTIDADE_ARQUIVOS = 4
     
     # Número de amostras por dataset
-    QUANTIDADE_AMOSTRAS = 50
+    QUANTIDADE_AMOSTRAS = 100
     
     # Parâmetros da função linear y = ax + b
     # Cada posição corresponde a um dataset diferente
@@ -72,7 +72,7 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear):
     # Combinação final
     ruido = np.random.uniform(-0.2, 0.2)
 
-    valores_y = y_deterministico * (1 + ruido)
+    valores_y = y_deterministico * 1 #(1 + ruido)
     
     return valores_y.astype(np.float64)
 

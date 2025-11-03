@@ -57,10 +57,10 @@ def configurar_visualizacao(X, Y, historico, ab_desejado):
     ax1.legend(loc='upper left')
     ax1.grid(True, alpha=0.3)
     
-    # Texto para mostrar época e parâmetros
-    texto_params = ax1.text(0.02, 0.98, '', transform=ax1.transAxes,
-                           verticalalignment='top', fontsize=9,
-                           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    # # Texto para mostrar época e parâmetros
+    # texto_params = ax1.text(0.02, 0.98, '', transform=ax1.transAxes,
+    #                        verticalalignment='top', fontsize=9,
+    #                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     
     # ---- SUBPLOT 2: Evolução do MSE ----
     ax2.set_xlim(0, epocas[-1])
@@ -99,7 +99,7 @@ def configurar_visualizacao(X, Y, historico, ab_desejado):
     
     elementos = {
         'linha_ajuste': linha_ajuste,
-        'texto_params': texto_params,
+        # 'texto_params': texto_params,
         'linha_mse': linha_mse,
         'ponto_mse': ponto_mse,
         'linha_trajetoria': linha_trajetoria,
@@ -128,11 +128,11 @@ def atualizar_frame(frame_idx, X, Y, historico, elementos):
     elementos['linha_ajuste'].set_data(X, Y_pred)
     
     # Atualizar texto com parâmetros
-    texto = (f'Época: {epoca_atual}\n'
-             f'a = {a_atual:.6f}\n'
-             f'b = {b_atual:.6f}\n'
-             f'MSE = {mse_atual:.4f}')
-    elementos['texto_params'].set_text(texto)
+    # texto = (f'Época: {epoca_atual}\n'
+    #          f'a = {a_atual:.6f}\n'
+    #          f'b = {b_atual:.6f}\n'
+    #          f'MSE = {mse_atual:.4f}')
+    # elementos['texto_params'].set_text(texto)
     
     # Atualizar gráfico de MSE
     epocas_ate_agora = epocas[:frame_idx + 1]
@@ -146,7 +146,8 @@ def atualizar_frame(frame_idx, X, Y, historico, elementos):
     elementos['linha_trajetoria'].set_data(a_ate_agora, b_ate_agora)
     elementos['ponto_atual'].set_data([a_atual], [b_atual])
     
-    return (elementos['linha_ajuste'], elementos['texto_params'],
+    return (elementos['linha_ajuste'], 
+            # elementos['texto_params'],
             elementos['linha_mse'], elementos['ponto_mse'],
             elementos['linha_trajetoria'], elementos['ponto_atual'])
 

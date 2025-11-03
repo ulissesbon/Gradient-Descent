@@ -68,10 +68,10 @@
 #define QUANTIDADE_ARQUIVOS 4
 
 /* Número de amostras por dataset */
-#define QUANTIDADE_AMOSTRAS 50
+#define QUANTIDADE_AMOSTRAS 100
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 20
+#define EPOCAS_TREINAMENTO 30
 
 /* 
   Taxas de aprendizado (learning rates):
