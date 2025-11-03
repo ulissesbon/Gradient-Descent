@@ -57,7 +57,7 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 
 ### 🎬 Visualização do Treinamento
 
-![Animação do Treinamento](docs/images/animacao_treinamento.gif)
+![Animação do Treinamento](docs/images/animacao_treinamento_exemplo.gif)
 *Figura 2: Visualização do processo de treinamento mostrando o ajuste da reta, evolução do erro e trajetória no espaço de parâmetros*
 
 ---
@@ -66,13 +66,13 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 
 ```
 .
-├── data/                          # Datasets gerados
-│   ├── dataset0.csv              # Dataset 1 (a=2, b=1)
-│   ├── dataset1.csv              # Dataset 2 (a=60, b=70)
-│   ├── dataset2.csv              # Dataset 3 (a=100, b=1000)
-│   └── dataset3.csv              # Dataset 4 (a=300, b=0)
+├── data/                           # Datasets gerados
+│   ├── dataset0.csv                # Dataset 1 (a=2, b=1)
+│   ├── dataset1.csv                # Dataset 2 (a=60, b=70)
+│   ├── dataset2.csv                # Dataset 3 (a=100, b=1000)
+│   └── dataset3.csv                # Dataset 4 (a=300, b=0)
 │
-├── docs/                          # Documentação e imagens
+├── docs/                           # Documentação e imagens
 │   └── images/
 │       ├── animacao_treinamento.gif
 │       ├── comparacao_gradiente-descendente.webp
@@ -80,17 +80,17 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 │       └── regressao_linear_conceito.png
 |
 |
-├── generate_data.py              # Gerador de datasets sintéticos
-├── main.c                        # Implementação em C
-├── main.py                       # Implementação em Python (sklearn)
-├── view.py                       # Visualizador interativo
+├── generate_data.py                 # Gerador de datasets sintéticos
+├── main.c                           # Implementação em C
+├── main.py                          # Implementação em Python (sklearn)
+├── view.py                          # Visualizador interativo
 │
-├── historico_treinamento.csv     # Histórico exportado pelo C
-├── animacao_treinamento.gif      # Animação gerada pelo view.py
+├── historico_treinamento.csv        # Histórico exportado pelo C
+├── animacao_treinamento_exemplo.gif # Animação gerada pelo view.py
 |
-├── run.sh                        # Comandos de execução (ubuntu)
+├── run.sh                           # Comandos de execução (ubuntu)
 │
-└── README.md                     # Este arquivo
+└── README.md                        # Este arquivo
 ```
 
 ---
