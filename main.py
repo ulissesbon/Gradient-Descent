@@ -25,7 +25,7 @@ class ConfiguracaoTreinamento:
     QUANTIDADE_ARQUIVOS = 4
     
     # Hiperparâmetros do gradiente descendente
-    NUMERO_EPOCAS = 20
+    NUMERO_EPOCAS = 20000
     TAXA_APRENDIZADO = 1e-5
     
     # Diretório dos datasets
@@ -214,6 +214,26 @@ def exibir_informacoes_dataset(indice, scaler, coef_angular, coef_linear):
     print(f"    • Coeficiente linear (b):  {coef_linear:.6f}")
     print("=" * 70)
 
+def salvar_parametros_finais(indice_dataset, coef_angular, coef_linear, valores_x, valores_y):
+    """
+    Salva os parâmetros finais em arquivo para comparação.
+    
+    Args:
+        indice_dataset: Número do dataset
+        coef_angular: Coeficiente angular (a)
+        coef_linear: Coeficiente linear (b)
+        valores_x: Features originais
+        valores_y: Targets originais
+    """
+    # Calcular MSE
+    y_pred = coef_angular * valores_x + coef_linear
+    mse = np.mean((y_pred - valores_y) ** 2)
+    
+    # Salvar em arquivo (modo append)
+    with open("resultados_finais.txt", "a") as f:
+        f.write(f"Dataset {indice_dataset}: a={coef_angular:.10f}, "
+                f"b={coef_linear:.10f}, mse={mse:.10f}\n")
+
 
 # ============================================================================
 # FUNÇÃO DE PROCESSAMENTO DE DATASET
@@ -253,7 +273,10 @@ def processar_dataset(indice, config):
     # 5. Converter parâmetros para escala original
     coef_angular, coef_linear = converter_parametros_escala_original(modelo, scaler)
     
-    # 6. Exibir resultados
+    # 6. Salvar resultados finais
+    salvar_parametros_finais(indice, coef_angular, coef_linear, valores_x, valores_y)
+
+    # 7. Exibir resultados
     exibir_informacoes_dataset(indice, scaler, coef_angular, coef_linear)
     
     # Retornar resultados

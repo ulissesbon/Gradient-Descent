@@ -36,7 +36,7 @@
 #define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 20
+#define EPOCAS_TREINAMENTO 20000
 
 /* Arquivo de saída com histórico do treinamento */
 #define ARQUIVO_HISTORICO "historico_treinamento.csv"
@@ -306,6 +306,22 @@ static void treinar_modelo(double *a_original,
     *b_original = b_centralizado - a_centralizado * media_x;
 }
 
+/**
+ * Salva os parâmetros finais em arquivo para comparação.
+ * 
+ * @param indice_dataset Número do dataset
+ * @param a Coeficiente angular final
+ * @param b Coeficiente linear final
+ * @param mse Erro quadrático médio final
+ */
+static void salvar_parametros_finais(int indice_dataset, double a, double b, double mse) {
+    FILE *fp = fopen("resultados_finais.txt", "a");  // modo append
+    if (fp) {
+        fprintf(fp, "Dataset %d: a=%.10f, b=%.10f, mse=%.10f\n", 
+                indice_dataset, a, b, mse);
+        fclose(fp);
+    }
+}
 
 /* ========================================================================== */
 /* FUNÇÃO PRINCIPAL                                                           */
@@ -350,6 +366,12 @@ int main(void) {
         double a_treinado = 0.0;
         double b_treinado = 0.0;
         treinar_modelo(&a_treinado, &b_treinado, ARQUIVO_HISTORICO);
+
+        // Calcular MSE final
+        double mse_final = calcular_mse(a_treinado, b_treinado);
+
+        // Salvar resultados
+        salvar_parametros_finais(i, a_treinado, b_treinado, mse_final);
 
         /* Exibir resultados finais */
         printf("\n");
