@@ -1,2 +1,5 @@
 main
 venv
+.venv
+Tests
+Tests/test

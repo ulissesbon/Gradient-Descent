@@ -123,14 +123,14 @@ static int carregar_csv(const char *caminho_csv) {
     /* Abrir arquivo para leitura */
     FILE *fp = fopen(caminho_csv, "r");
     if (!fp) {
-        fprintf(stderr, "❌ Erro: não foi possível abrir '%s'\n", caminho_csv);
+        fprintf(stderr, " Erro: não foi possível abrir '%s'\n", caminho_csv);
         return 0;
     }
 
     /* Ler e descartar a linha de cabeçalho */
     char cabecalho[128];
     if (!fgets(cabecalho, sizeof(cabecalho), fp)) {
-        fprintf(stderr, "❌ Erro: arquivo vazio ou corrompido.\n");
+        fprintf(stderr, " Erro: arquivo vazio ou corrompido.\n");
         fclose(fp);
         return 0;
     }
@@ -141,7 +141,7 @@ static int carregar_csv(const char *caminho_csv) {
         
         /* Tentar ler um par (x, y) */
         if (fscanf(fp, "%f,%f", &xd, &yd) != 2) {
-            fprintf(stderr, "❌ Erro ao ler a linha %d do CSV.\n", i + 2);
+            fprintf(stderr, " Erro ao ler a linha %d do CSV.\n", i + 2);
             fclose(fp);
             return 0;
         }
@@ -286,7 +286,7 @@ static void treinar_modelo(float *a_original,
     float media_x = calcular_media(g_x, g_n);
     float media_y = calcular_media(g_y, g_n);
     
-    printf("  📊 Estatísticas dos dados:\n");
+    printf("  Estatísticas dos dados:\n");
     printf("     • Média de X: %.6f\n", media_x);
     printf("     • Média de Y: %.6f\n", media_y);
     printf("\n");
@@ -300,7 +300,7 @@ static void treinar_modelo(float *a_original,
     float a_centralizado = 0.0;      /* Inclinação começa em zero */
     float b_centralizado = media_y;  /* Intercepto começa na média de Y */
 
-    printf("  🔄 Treinando modelo (%d épocas)...\n", EPOCAS_TREINAMENTO);
+    printf(" Treinando modelo (%d épocas)...\n", EPOCAS_TREINAMENTO);
 
     /* Passo 4: Loop principal de treinamento */
     for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
@@ -330,7 +330,7 @@ static void treinar_modelo(float *a_original,
     /* Fechar arquivo de histórico */
     if (fp_historico) {
         fclose(fp_historico);
-        printf("\n  💾 Histórico salvo em: %s\n", arquivo_historico);
+        printf("\n Histórico salvo em: %s\n", arquivo_historico);
     }
 
     /* Passo 5: Converter parâmetros finais para escala original */
@@ -391,11 +391,11 @@ int main(void) {
 
         /* Carregar dados do CSV */
         if (!carregar_csv(caminho_dataset)) {
-            fprintf(stderr, "❌ Falha ao carregar dataset %d\n\n", i);
+            fprintf(stderr, " Falha ao carregar dataset %d\n\n", i);
             return 1;
         }
         
-        printf("  ✅ Carregado: %d amostras\n\n", g_n);
+        printf("  Carregado: %d amostras\n\n", g_n);
 
         /* Treinar modelo */
         float a_treinado = 0.0;
@@ -410,7 +410,7 @@ int main(void) {
 
         /* Exibir resultados finais */
         printf("\n");
-        printf("  ✨ RESULTADOS FINAIS:\n");
+        printf("  RESULTADOS FINAIS:\n");
         printf("     • Equação da reta: y = %.6f * x + %.6f\n", 
                a_treinado, b_treinado);
         printf("     • Coeficiente angular (a): %.6f\n", a_treinado);
