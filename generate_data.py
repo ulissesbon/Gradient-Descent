@@ -22,15 +22,13 @@ class ConfiguracaoDataset:
     QUANTIDADE_ARQUIVOS = 4
     
     # Número de amostras por dataset
-    QUANTIDADE_AMOSTRAS = 1000
+    QUANTIDADE_AMOSTRAS = 50
     
     # Parâmetros da função linear y = ax + b
     # Cada posição corresponde a um dataset diferente
     COEFICIENTES_ANGULARES = [2, 60, 100, 300]      # Inclinação (a)
     COEFICIENTES_LINEARES = [1, 70, 1000, 0]        # Intercepto (b)
     
-    # Desvio padrão do ruído como proporção do intercepto
-    PROPORCAO_RUIDO = 0.5
     
     # Diretório de saída
     DIRETORIO_SAIDA = "data"
@@ -89,11 +87,11 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, desvio_p
     # Componente determinística: y = ax + b
     y_deterministico = valores_x * coeficiente_angular + coeficiente_linear
     
-    # Componente estocástico: ruído gaussiano
-    ruido = np.random.normal(loc=0, scale=desvio_padrao_ruido, size=len(valores_x))
     
     # Combinação final
-    valores_y = y_deterministico + ruido
+    ruido = np.random.uniform(-0.02, 0.02)
+
+    valores_y = y_deterministico(1 + ruido)
     
     return valores_y.astype(np.float64)
 
