@@ -1,26 +1,61 @@
 /*
-  ============================================================================
-  Regressão Linear com Descida de Gradiente em C
-  ============================================================================
-  
-  Implementa regressão linear (y ≈ a*x + b) usando o algoritmo de descida
-  de gradiente (gradient descent) com centralização de dados.
-  
-  Características:
-    - Leitura de datasets CSV
-    - Treinamento com descida de gradiente
-    - Exportação do histórico para visualização
-    - Armazenamento estático (~8 KB)
-  
-  Formato do CSV de entrada:
-    x,y
-    1.000000,3.190011
-    2.000000,5.093333
-    ...
-  
-  Autores: Raquel Maciel e Ulisses Bonfim
-  ============================================================================
-*/
+ * @(#)main.c    1.0 02/11/2025
+ *
+ * Copyright 2025 by Raquel Maciel e Ulisses Bonfim
+ * Universidade IFCE - Engenharia de Computação (DTEL)
+ * All rights reserved.
+ *
+ * Este software é parte de um trabalho acadêmico para a disciplina de
+ * Sistemas Embarcados. Uso livre para fins educacionais.
+ */
+
+/*
+ * ============================================================================
+ * REGRESSÃO LINEAR COM DESCIDA DE GRADIENTE
+ * ============================================================================
+ * 
+ * DESCRIÇÃO GERAL:
+ *   Implementa regressão linear (y ≈ a*x + b) usando o algoritmo de descida
+ *   de gradiente (gradient descent) com centralização de dados.
+ * 
+ * CARACTERÍSTICAS:
+ *   - Leitura de datasets CSV
+ *   - Treinamento com descida de gradiente
+ *   - Exportação do histórico para visualização
+ *   - Armazenamento estático (~8 KB)
+ * 
+ * ENTRADA:
+ *   Arquivo CSV no formato:
+ *     x,y
+ *     1.000000,3.190011
+ *     2.000000,5.093333
+ *     ...
+ *   Onde x = variável independente, y = variável dependente
+ * 
+ * SAÍDA:
+ *   - Terminal: Parâmetros finais (a, b) e estatísticas
+ *   - Arquivo CSV: Histórico completo do treinamento (época, a, b, MSE)
+ * 
+ * COMO USAR:
+ *   Compilar: gcc -o main main.c -lm
+ *   Executar: ./main
+ *   
+ * AUTORES:
+ *   Raquel Maciel
+ *   Ulisses Bonfim
+ * 
+ * DATA: Novembro 2024
+ * 
+ * CONTEXTO:
+ *   Trabalho de Sistemas Embarcados
+ *   IFCE - Campus Fortaleza
+ * 
+ * PLATAFORMA ALVO:
+ *   Linux/Windows/MacOS com GCC
+ *   Requer biblioteca matemática padrão (-lm)
+ * 
+ * ============================================================================
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -36,7 +71,7 @@
 #define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 20
+#define EPOCAS_TREINAMENTO 20000
 
 /* 
   Taxas de aprendizado (learning rates):
@@ -62,9 +97,9 @@
   - g_n: quantidade efetiva de amostras carregadas
 */
 
-static double g_x[QUANTIDADE_AMOSTRAS];
-static double g_y[QUANTIDADE_AMOSTRAS];
-static double g_x_centralizado[QUANTIDADE_AMOSTRAS];
+static float g_x[QUANTIDADE_AMOSTRAS];
+static float g_y[QUANTIDADE_AMOSTRAS];
+static float g_x_centralizado[QUANTIDADE_AMOSTRAS];
 static int    g_n = 0;
 
 
@@ -102,10 +137,10 @@ static int carregar_csv(const char *caminho_csv) {
 
     /* Ler todas as linhas de dados */
     for (int i = 0; i < QUANTIDADE_AMOSTRAS; i++) {
-        double xd, yd;
+        float xd, yd;
         
         /* Tentar ler um par (x, y) */
-        if (fscanf(fp, "%lf,%lf", &xd, &yd) != 2) {
+        if (fscanf(fp, "%f,%f", &xd, &yd) != 2) {
             fprintf(stderr, "❌ Erro ao ler a linha %d do CSV.\n", i + 2);
             fclose(fp);
             return 0;
@@ -134,14 +169,14 @@ static int carregar_csv(const char *caminho_csv) {
  * @param n Número de elementos
  * @return Média dos valores
  */
-static double calcular_media(const double *v, int n) {
-    double soma = 0.0;
+static float calcular_media(const float *v, int n) {
+    float soma = 0.0;
     
     for (int i = 0; i < n; i++) {
         soma += v[i];
     }
     
-    return soma / (double)n;
+    return soma / (float)n;
 }
 
 /**
@@ -153,16 +188,16 @@ static double calcular_media(const double *v, int n) {
  * @param b Coeficiente linear (intercepto)
  * @return Valor do MSE
  */
-static double calcular_mse(double a, double b) {
-    double soma_erros_quadrados = 0.0;
+static float calcular_mse(float a, float b) {
+    float soma_erros_quadrados = 0.0;
     
     for (int i = 0; i < g_n; i++) {
-        double y_predito = a * g_x[i] + b;
-        double erro = y_predito - g_y[i];
+        float y_predito = a * g_x[i] + b;
+        float erro = y_predito - g_y[i];
         soma_erros_quadrados += erro * erro;
     }
     
-    return soma_erros_quadrados / (double)g_n;
+    return soma_erros_quadrados / (float)g_n;
 }
 
 
@@ -187,17 +222,17 @@ static double calcular_mse(double a, double b) {
  * @param a_centralizado Ponteiro para o coeficiente angular (centralizado)
  * @param b_centralizado Ponteiro para o coeficiente linear (centralizado)
  */
-static void executar_epoca_gradiente(double *a_centralizado,
-                                     double *b_centralizado)
+static void executar_epoca_gradiente(float *a_centralizado,
+                                     float *b_centralizado)
 {
-    double gradiente_a = 0.0;
-    double gradiente_b = 0.0;
+    float gradiente_a = 0.0;
+    float gradiente_b = 0.0;
 
     /* Calcular gradientes acumulando contribuições de cada amostra */
     for (int i = 0; i < g_n; i++) {
-        double x_cent = g_x_centralizado[i];  /* x - média(x) */
-        double y_predito = (*a_centralizado) * x_cent + (*b_centralizado);
-        double erro = y_predito - g_y[i];
+        float x_cent = g_x_centralizado[i];  /* x - média(x) */
+        float y_predito = (*a_centralizado) * x_cent + (*b_centralizado);
+        float erro = y_predito - g_y[i];
 
         /* Acumular gradientes */
         gradiente_a += erro * x_cent;  /* ∂J/∂a ∝ Σ(erro * x_cent) */
@@ -205,8 +240,8 @@ static void executar_epoca_gradiente(double *a_centralizado,
     }
 
     /* Normalizar gradientes pela quantidade de amostras */
-    gradiente_a = (2.0 * gradiente_a) / (double)g_n;
-    gradiente_b = (2.0 * gradiente_b) / (double)g_n;
+    gradiente_a = (2.0 * gradiente_a) / (float)g_n;
+    gradiente_b = (2.0 * gradiente_b) / (float)g_n;
 
     /* Atualizar parâmetros (descida do gradiente) */
     *a_centralizado -= TAXA_APRENDIZADO_INCLINACAO * gradiente_a;
@@ -237,8 +272,8 @@ static void executar_epoca_gradiente(double *a_centralizado,
  * @param b_original Ponteiro para armazenar coeficiente linear final
  * @param arquivo_historico Caminho do arquivo CSV para salvar histórico
  */
-static void treinar_modelo(double *a_original,
-                          double *b_original,
+static void treinar_modelo(float *a_original,
+                          float *b_original,
                           const char *arquivo_historico)
 {
     /* Abrir arquivo para salvar histórico */
@@ -248,8 +283,8 @@ static void treinar_modelo(double *a_original,
     }
 
     /* Passo 1: Calcular estatísticas dos dados */
-    double media_x = calcular_media(g_x, g_n);
-    double media_y = calcular_media(g_y, g_n);
+    float media_x = calcular_media(g_x, g_n);
+    float media_y = calcular_media(g_y, g_n);
     
     printf("  📊 Estatísticas dos dados:\n");
     printf("     • Média de X: %.6f\n", media_x);
@@ -262,8 +297,8 @@ static void treinar_modelo(double *a_original,
     }
 
     /* Passo 3: Inicializar parâmetros */
-    double a_centralizado = 0.0;      /* Inclinação começa em zero */
-    double b_centralizado = media_y;  /* Intercepto começa na média de Y */
+    float a_centralizado = 0.0;      /* Inclinação começa em zero */
+    float b_centralizado = media_y;  /* Intercepto começa na média de Y */
 
     printf("  🔄 Treinando modelo (%d épocas)...\n", EPOCAS_TREINAMENTO);
 
@@ -273,11 +308,11 @@ static void treinar_modelo(double *a_original,
         executar_epoca_gradiente(&a_centralizado, &b_centralizado);
 
         /* Converter para escala original temporariamente */
-        double a_temp = a_centralizado;
-        double b_temp = b_centralizado - a_centralizado * media_x;
+        float a_temp = a_centralizado;
+        float b_temp = b_centralizado - a_centralizado * media_x;
         
         /* Calcular erro (MSE) na escala original */
-        double mse = calcular_mse(a_temp, b_temp);
+        float mse = calcular_mse(a_temp, b_temp);
 
         /* Salvar no histórico */
         if (fp_historico) {
@@ -311,7 +346,7 @@ static void treinar_modelo(double *a_original,
  * @param b Coeficiente linear final
  * @param mse Erro quadrático médio final
  */
-static void salvar_parametros_finais(int indice_dataset, double a, double b, double mse) {
+static void salvar_parametros_finais(int indice_dataset, float a, float b, float mse) {
     FILE *fp = fopen("resultados_finais.txt", "a");  // modo append
     if (fp) {
         fprintf(fp, "(C Lang) Dataset %d: a=%.10f, b=%.10f, mse=%.10f\n", 
@@ -363,12 +398,12 @@ int main(void) {
         printf("  ✅ Carregado: %d amostras\n\n", g_n);
 
         /* Treinar modelo */
-        double a_treinado = 0.0;
-        double b_treinado = 0.0;
+        float a_treinado = 0.0;
+        float b_treinado = 0.0;
         treinar_modelo(&a_treinado, &b_treinado, caminho_historico);
 
         // Calcular MSE final
-        double mse_final = calcular_mse(a_treinado, b_treinado);
+        float mse_final = calcular_mse(a_treinado, b_treinado);
 
         // Salvar resultados
         salvar_parametros_finais(i, a_treinado, b_treinado, mse_final);

@@ -25,7 +25,7 @@ class ConfiguracaoTreinamento:
     QUANTIDADE_ARQUIVOS = 4
     
     # Hiperparâmetros do gradiente descendente
-    NUMERO_EPOCAS = 20
+    NUMERO_EPOCAS = 20000
     TAXA_APRENDIZADO = 1e-5
     
     # Diretório dos datasets
