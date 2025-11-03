@@ -22,7 +22,7 @@ class ConfiguracaoDataset:
     QUANTIDADE_ARQUIVOS = 4
     
     # Número de amostras por dataset
-    QUANTIDADE_AMOSTRAS = 100
+    QUANTIDADE_AMOSTRAS = 1000
     
     # Parâmetros da função linear y = ax + b
     # Cada posição corresponde a um dataset diferente

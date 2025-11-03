@@ -68,7 +68,7 @@
 #define QUANTIDADE_ARQUIVOS 4
 
 /* Número de amostras por dataset */
-#define QUANTIDADE_AMOSTRAS 100
+#define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
 #define EPOCAS_TREINAMENTO 30
@@ -78,8 +78,8 @@
   - Taxa menor para inclinação (a) pois x pode ter valores grandes
   - Taxa para intercepto (b) pode ser igual ou diferente
 */
-#define TAXA_APRENDIZADO_INCLINACAO  1e-3
-#define TAXA_APRENDIZADO_INTERCEPTO  1e-3
+#define TAXA_APRENDIZADO_INCLINACAO  1e-5
+#define TAXA_APRENDIZADO_INTERCEPTO  1e-5
 
 /* Intervalo para exibir progresso (a cada N épocas) */
 #define INTERVALO_DE_LOG 5000
