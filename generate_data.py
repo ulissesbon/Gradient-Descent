@@ -38,23 +38,6 @@ class ConfiguracaoDataset:
 # FUNÇÕES DE GERAÇÃO
 # ============================================================================
 
-def calcular_desvios_padrao_ruido(coeficientes_lineares, proporcao):
-    """
-    Calcula o desvio padrão do ruído para cada dataset.
-    
-    O ruído é proporcional ao intercepto (b), tornando datasets com
-    valores maiores naturalmente mais ruidosos.
-    
-    Args:
-        coeficientes_lineares: Lista com valores de b para cada dataset
-        proporcao: Proporção do ruído em relação a b
-        
-    Returns:
-        list: Desvios padrão do ruído para cada dataset
-    """
-    return [b * proporcao for b in coeficientes_lineares]
-
-
 def gerar_valores_x(quantidade_amostras):
     """
     Gera valores uniformemente espaçados para o eixo X.
@@ -68,18 +51,16 @@ def gerar_valores_x(quantidade_amostras):
     return np.arange(1, quantidade_amostras + 1, dtype=np.float64)
 
 
-def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, desvio_padrao_ruido):
+def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear):
     """
     Gera valores de Y seguindo o modelo linear com ruído gaussiano.
     
     Modelo: y = a*x + b + ruído
-    onde ruído ~ N(0, desvio_padrao_ruido)
     
     Args:
         valores_x: Array com valores de entrada
         coeficiente_angular: Inclinação da reta (a)
         coeficiente_linear: Intercepto da reta (b)
-        desvio_padrao_ruido: Desvio padrão do ruído gaussiano
         
     Returns:
         ndarray: Array com valores de Y gerados
@@ -89,9 +70,9 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, desvio_p
     
     
     # Combinação final
-    ruido = np.random.uniform(-0.02, 0.02)
+    ruido = np.random.uniform(-0.2, 0.2)
 
-    valores_y = y_deterministico(1 + ruido)
+    valores_y = y_deterministico * (1 + ruido)
     
     return valores_y.astype(np.float64)
 
@@ -150,21 +131,13 @@ def gerar_dataset(indice, valores_x, config):
     # Obter parâmetros para este dataset
     a = config.COEFICIENTES_ANGULARES[indice]
     b = config.COEFICIENTES_LINEARES[indice]
-    
-    # Calcular desvio padrão do ruído
-    desvios_ruido = calcular_desvios_padrao_ruido(
-        config.COEFICIENTES_LINEARES,
-        config.PROPORCAO_RUIDO
-    )
-    desvio_ruido = desvios_ruido[indice]
-    
+
     # Gerar valores de Y
-    valores_y = gerar_valores_y(valores_x, a, b, desvio_ruido)
+    valores_y = gerar_valores_y(valores_x, a, b)
     
     parametros = {
         'a': a,
         'b': b,
-        'desvio_ruido': desvio_ruido
     }
     
     return valores_x, valores_y, parametros
@@ -185,7 +158,6 @@ def exibir_resumo_dataset(indice, parametros, quantidade_amostras):
     print(f"  Arquivo: dataset{indice}.csv")
     print(f"  Amostras: {quantidade_amostras}")
     print(f"  Modelo: y = {parametros['a']}*x + {parametros['b']} + ruído")
-    print(f"  Desvio padrão do ruído: {parametros['desvio_ruido']:.2f}")
     print(f"{'='*60}")
 
 
