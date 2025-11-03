@@ -51,7 +51,7 @@ def gerar_valores_x(quantidade_amostras):
     return np.arange(1, quantidade_amostras + 1, dtype=np.float64)
 
 
-def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear):
+def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, amount_samples):
     """
     Gera valores de Y seguindo o modelo linear com ruído gaussiano.
     
@@ -61,6 +61,7 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear):
         valores_x: Array com valores de entrada
         coeficiente_angular: Inclinação da reta (a)
         coeficiente_linear: Intercepto da reta (b)
+        amount_samples: Quantidade de amostras
         
     Returns:
         ndarray: Array com valores de Y gerados
@@ -70,9 +71,9 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear):
     
     
     # Combinação final
-    ruido = np.random.uniform(-0.2, 0.2)
+    ruido = np.random.uniform(-amount_samples//4, amount_samples//4, size=amount_samples)
 
-    valores_y = y_deterministico * 1 #(1 + ruido)
+    valores_y = y_deterministico + ruido
     
     return valores_y.astype(np.float64)
 
@@ -131,9 +132,9 @@ def gerar_dataset(indice, valores_x, config):
     # Obter parâmetros para este dataset
     a = config.COEFICIENTES_ANGULARES[indice]
     b = config.COEFICIENTES_LINEARES[indice]
-
+    amount_samples = config.QUANTIDADE_AMOSTRAS
     # Gerar valores de Y
-    valores_y = gerar_valores_y(valores_x, a, b)
+    valores_y = gerar_valores_y(valores_x, a, b, amount_samples)
     
     parametros = {
         'a': a,
