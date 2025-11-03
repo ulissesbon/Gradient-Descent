@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-
 def carregar_dados_dataset(caminho_csv):
     """Carrega os dados originais do dataset."""
     dados = np.loadtxt(caminho_csv, delimiter=",", skiprows=1)
@@ -36,7 +35,7 @@ def carregar_historico_treinamento(caminho_historico):
     }
 
 
-def configurar_visualizacao(X, Y, historico):
+def configurar_visualizacao(X, Y, historico, ab_desejado):
     """Configura os três subplots para animação."""
     
     epocas = historico['epocas']
@@ -76,7 +75,8 @@ def configurar_visualizacao(X, Y, historico):
     # ---- SUBPLOT 3: Trajetória no espaço de parâmetros ----
     linha_trajetoria, = ax3.plot([], [], 'r.-', linewidth=1.5, markersize=5,
                                   label='Trajetória (a, b)', alpha=0.7)
-    ponto_atual, = ax3.plot([], [], 'ro', markersize=10, label='Posição atual')
+    ponto_atual, = ax3.plot([], [], 'ro', markersize=9, label='Posição atual')
+    ponto_desejado, = ax3.plot(ab_desejado[0], ab_desejado[1], 'bo', markersize=10, label='Posição desejada')
     ax3.set_xlabel('Coeficiente Angular (a)', fontsize=11)
     ax3.set_ylabel('Coeficiente Linear (b)', fontsize=11)
     ax3.set_title('Espaço de Parâmetros', fontsize=12, fontweight='bold')
@@ -155,11 +155,12 @@ def main():
     """Função principal."""
     
     # Configurações
-    DATASET = "data/dataset3.csv"
-    HISTORICO = "historico_treinamento.csv"
+    DATASET = "data/dataset0.csv"
+    HISTORICO = "historico/historico_treinamento_dataset0.csv"
     SALVAR_GIF = True
     ARQUIVO_GIF = "animacao_treinamento.gif"
-    
+    AB_DESEJADO = (2.0, 1.0)  # (a, b) desejados para o dataset0.csv
+
     print("=" * 70)
     print("VISUALIZADOR DE TREINAMENTO EM C")
     print("=" * 70)
@@ -179,7 +180,7 @@ def main():
     
     # Configurar visualização
     print("\n3. Configurando visualização...")
-    fig, ax1, ax2, ax3, elementos = configurar_visualizacao(X, Y, historico)
+    fig, ax1, ax2, ax3, elementos = configurar_visualizacao(X, Y, historico, AB_DESEJADO)
     
     # Criar animação (mostrar 1 a cada 50 épocas para ser mais rápido)
     passo = max(1, len(historico['epocas']) // 200)

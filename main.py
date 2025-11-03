@@ -25,7 +25,7 @@ class ConfiguracaoTreinamento:
     QUANTIDADE_ARQUIVOS = 4
     
     # Hiperparâmetros do gradiente descendente
-    NUMERO_EPOCAS = 20000
+    NUMERO_EPOCAS = 20
     TAXA_APRENDIZADO = 1e-5
     
     # Diretório dos datasets
@@ -231,7 +231,7 @@ def salvar_parametros_finais(indice_dataset, coef_angular, coef_linear, valores_
     
     # Salvar em arquivo (modo append)
     with open("resultados_finais.txt", "a") as f:
-        f.write(f"Dataset {indice_dataset}: a={coef_angular:.10f}, "
+        f.write(f"(Python) Dataset {indice_dataset}: a={coef_angular:.10f}, "
                 f"b={coef_linear:.10f}, mse={mse:.10f}\n")
 
 

@@ -72,6 +72,12 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 │   ├── dataset2.csv                # Dataset 3 (a=100, b=1000)
 │   └── dataset3.csv                # Dataset 4 (a=300, b=0)
 │
+├── historico/                      # Historico cada época (C)
+│   ├── historico_treinamento_dataset0.csv
+│   ├── historico_treinamento_dataset1.csv
+│   ├── historico_treinamento_dataset2.csv
+│   └── historico_treinamento_dataset3.csv
+│
 ├── docs/                           # Documentação e imagens
 │   └── images/
 │       ├── animacao_treinamento.gif
@@ -88,7 +94,8 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 ├── historico_treinamento.csv        # Histórico exportado pelo C
 ├── animacao_treinamento_exemplo.gif # Animação gerada pelo view.py
 |
-├── run.sh                           # Comandos de execução (ubuntu)
+├── run_ubuntu.sh                    # Comandos de execução (ubuntu)
+├── resultados_finais.txt            # Resultados C e Python de cada dataset
 │
 └── README.md                        # Este arquivo
 ```
@@ -259,6 +266,16 @@ QUANTIDADE_AMOSTRAS = 1000 # Amostras por dataset
 COEFICIENTES_ANGULARES = [2, 60, 100, 300]
 COEFICIENTES_LINEARES = [1, 70, 1000, 0]
 PROPORCAO_RUIDO = 0.5
+```
+
+### Em Python (`view.py`)
+
+```python
+DATASET = "data/dataset0.csv"
+HISTORICO = "historico/historico_treinamento_dataset0.csv" 
+SALVAR_GIF = True
+ARQUIVO_GIF = "animacao_treinamento.gif"
+AB_DESEJADO = (2.0, 1.0)  # (a, b) desejados para o dataset0.csv
 ```
 
 

@@ -36,10 +36,7 @@
 #define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 20000
-
-/* Arquivo de saída com histórico do treinamento */
-#define ARQUIVO_HISTORICO "historico_treinamento.csv"
+#define EPOCAS_TREINAMENTO 20
 
 /* 
   Taxas de aprendizado (learning rates):
@@ -317,7 +314,7 @@ static void treinar_modelo(double *a_original,
 static void salvar_parametros_finais(int indice_dataset, double a, double b, double mse) {
     FILE *fp = fopen("resultados_finais.txt", "a");  // modo append
     if (fp) {
-        fprintf(fp, "Dataset %d: a=%.10f, b=%.10f, mse=%.10f\n", 
+        fprintf(fp, "(C Lang) Dataset %d: a=%.10f, b=%.10f, mse=%.10f\n", 
                 indice_dataset, a, b, mse);
         fclose(fp);
     }
@@ -348,8 +345,11 @@ int main(void) {
     for (int i = 0; i < QUANTIDADE_ARQUIVOS; i++) {
         /* Construir caminho do arquivo */
         char caminho_dataset[256];
+        char caminho_historico[256];
         snprintf(caminho_dataset, sizeof(caminho_dataset), 
                  "data/dataset%d.csv", i);
+        snprintf(caminho_historico, sizeof(caminho_historico), 
+                 "historico/historico_treinamento_dataset%d.csv", i);
 
         printf("📁 Dataset %d: %s\n", i, caminho_dataset);
         printf("-----------------------------------------------------------------------\n");
@@ -365,7 +365,7 @@ int main(void) {
         /* Treinar modelo */
         double a_treinado = 0.0;
         double b_treinado = 0.0;
-        treinar_modelo(&a_treinado, &b_treinado, ARQUIVO_HISTORICO);
+        treinar_modelo(&a_treinado, &b_treinado, caminho_historico);
 
         // Calcular MSE final
         double mse_final = calcular_mse(a_treinado, b_treinado);
