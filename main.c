@@ -71,7 +71,7 @@
 #define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 30
+#define EPOCAS_TREINAMENTO 30000
 
 /* 
   Taxas de aprendizado (learning rates):
@@ -100,7 +100,7 @@
 static float g_x[QUANTIDADE_AMOSTRAS];
 static float g_y[QUANTIDADE_AMOSTRAS];
 static float g_x_centralizado[QUANTIDADE_AMOSTRAS];
-static int    g_n = 0;
+static int   g_n = 0;
 
 
 /* ========================================================================== */

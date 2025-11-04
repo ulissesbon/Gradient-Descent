@@ -73,7 +73,7 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, amount_s
     # Combinação final
     ruido = np.random.uniform(-amount_samples//4, amount_samples//4, size=amount_samples)
 
-    valores_y = y_deterministico + ruido
+    valores_y = y_deterministico + ruido//10
     
     return valores_y.astype(np.float64)
 
@@ -204,6 +204,6 @@ def main():
 
 if __name__ == "__main__":
     # Configurar seed para reprodutibilidade (opcional)
-    # np.random.seed(42)
+    np.random.seed(0)
     
     main()
