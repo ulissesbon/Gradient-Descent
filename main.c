@@ -118,6 +118,7 @@ static int   g_n = 0;
  * 
  * @param caminho_csv Caminho do arquivo CSV a ser lido
  * @return Número de amostras carregadas, ou 0 em caso de erro
+ * @note Esta função modifica (escreve) nas variáveis globais g_x, g_y e g_n.
  */
 static int carregar_csv(const char *caminho_csv) {
     /* Abrir arquivo para leitura */
@@ -187,6 +188,7 @@ static float calcular_media(const float *v, int n) {
  * @param a Coeficiente angular (inclinação)
  * @param b Coeficiente linear (intercepto)
  * @return Valor do MSE
+ * @note Esta função lê as variáveis globais g_x, g_y e g_n.
  */
 static float calcular_mse(float a, float b) {
     float soma_erros_quadrados = 0.0;
@@ -221,6 +223,7 @@ static float calcular_mse(float a, float b) {
  * 
  * @param a_centralizado Ponteiro para o coeficiente angular (centralizado)
  * @param b_centralizado Ponteiro para o coeficiente linear (centralizado)
+ * @note Esta função lê as variáveis globais g_x_centralizado, g_y e g_n.
  */
 static void executar_epoca_gradiente(float *a_centralizado,
                                      float *b_centralizado)
@@ -271,6 +274,9 @@ static void executar_epoca_gradiente(float *a_centralizado,
  * @param a_original Ponteiro para armazenar coeficiente angular final
  * @param b_original Ponteiro para armazenar coeficiente linear final
  * @param arquivo_historico Caminho do arquivo CSV para salvar histórico
+ * @note Esta função lê g_x, g_y, g_n e modifica (escreve) em g_x_centralizado.
+ * @note Esta função chama outras funções que também acessam globais 
+ * (calcular_media, executar_epoca_gradiente, calcular_mse).
  */
 static void treinar_modelo(float *a_original,
                           float *b_original,
