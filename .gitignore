@@ -3,3 +3,7 @@ venv
 .venv
 Tests
 Tests/test
+data/*
+historico/*
+embedded/STM32/*
+!embedded/STM32/Core/Src/main.c
