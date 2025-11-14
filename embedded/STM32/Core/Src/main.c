@@ -18,6 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dataset_flash.h"
+#include "gradient_engine.h"
+#include "heatshrink_decoder.h"
+#include <stdio.h>
+#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -43,7 +48,7 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+#define NUM_BLOCOS 8
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -51,12 +56,12 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+int receber_dataset(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static uint32_t index_offset = 2048;    // onde começam os blocos reais
 /* USER CODE END 0 */
 
 /**
@@ -90,6 +95,25 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  const char *msg = "Aguardando dataset...\r\n";
+  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+  flash_erase_dataset_area();
+  receber_dataset();
+
+  const char *ok = "Dataset recebido. Treinando...\r\n";
+  HAL_UART_Transmit(&huart2, (uint8_t*)ok, strlen(ok), HAL_MAX_DELAY);
+
+  passada_medias(NUM_BLOCOS);
+  passada_gradiente(NUM_BLOCOS, 30);
+  float mse = passada_mse(NUM_BLOCOS);
+
+  float a = a_cent;
+  float b = b_cent - a_cent * media_x;
+
+  char out[128];
+  snprintf(out, sizeof(out), "a=%.6f b=%.6f mse=%.6f\r\n", a, b, mse);
+  HAL_UART_Transmit(&huart2, (uint8_t*)out, strlen(out), HAL_MAX_DELAY);
 
   /* USER CODE END 2 */
 
@@ -216,7 +240,31 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int receber_dataset(void)
+{
+    uint32_t offsets[NUM_BLOCOS];
+    uint32_t sizes[NUM_BLOCOS];
 
+    for (int i = 0; i < NUM_BLOCOS; i++) {
+
+        uint32_t size;
+        HAL_UART_Receive(&huart2, (uint8_t *)&size, 4, HAL_MAX_DELAY);
+        sizes[i] = size;
+
+        uint8_t buf[1024];
+        HAL_UART_Receive(&huart2, buf, size, HAL_MAX_DELAY);
+
+        offsets[i] = index_offset;
+
+        flash_write_page(DATASET_FLASH_ADDR + index_offset, buf, size);
+        index_offset += size;
+    }
+
+    flash_write_page(DATASET_FLASH_ADDR,      (uint8_t *)offsets, sizeof(offsets));
+    flash_write_page(DATASET_FLASH_ADDR+1024, (uint8_t *)sizes,   sizeof(sizes));
+
+    return 0;
+}
 /* USER CODE END 4 */
 
 /**
