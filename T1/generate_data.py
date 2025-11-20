@@ -69,11 +69,10 @@ def gerar_valores_y(valores_x, coeficiente_angular, coeficiente_linear, amount_s
     # Componente determinística: y = ax + b
     y_deterministico = valores_x * coeficiente_angular + coeficiente_linear
     
-    
     # Combinação final
-    ruido = np.random.uniform(-amount_samples//4, amount_samples//4, size=amount_samples)
+    ruido = np.random.uniform(-amount_samples/4, amount_samples/4, size=amount_samples)
 
-    valores_y = y_deterministico + ruido//10
+    valores_y = y_deterministico + ruido/100
     
     return valores_y.astype(np.float64)
 

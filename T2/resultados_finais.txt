@@ -1,0 +1,8 @@
+(original) Dataset 0: a=2.0000009537, b=0.9956665039, mse=0.0825302675
+(randomico no original) Dataset 0: a=2.0000085831, b=0.9960937500, mse=0.0825495198
+(original) Dataset 1: a=1.9999370575, b=1.0304565430, mse=0.0812249929
+(randomico no original) Dataset 1: a=1.9999325275, b=1.0385131836, mse=0.0812584311
+(original) Dataset 2: a=1.9999688864, b=1.0206909180, mse=0.0815777332
+(randomico no original) Dataset 2: a=1.9999539852, b=1.0370483398, mse=0.0816735402
+(original) Dataset 3: a=2.0000076294, b=0.9835815430, mse=0.0863945186
+(randomico no original) Dataset 3: a=2.0000166893, b=0.9780273438, mse=0.0864030421
