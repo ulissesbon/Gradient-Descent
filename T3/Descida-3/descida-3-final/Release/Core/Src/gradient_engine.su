@@ -1,4 +1,0 @@
-../Core/Src/gradient_engine.c:10:6:gradient_run	64	static
-../Core/Src/gradient_engine.c:90:7:gradient_a	0	static
-../Core/Src/gradient_engine.c:91:7:gradient_b	0	static
-../Core/Src/gradient_engine.c:92:7:gradient_mse	0	static
