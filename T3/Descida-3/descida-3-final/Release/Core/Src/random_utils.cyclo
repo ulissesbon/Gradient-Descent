@@ -1,0 +1,4 @@
+../Core/Src/random_utils.c:6:6:random_seed	2
+../Core/Src/random_utils.c:12:10:random_uint16	1
+../Core/Src/random_utils.c:22:10:random_range	3
+../Core/Src/random_utils.c:37:6:shuffle_indices	2
