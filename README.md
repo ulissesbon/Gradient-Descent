@@ -87,9 +87,10 @@ A **Descida de Gradiente** (Gradient Descent) é um algoritmo iterativo de otimi
 |
 |
 ├── generate_data.py                 # Gerador de datasets sintéticos
-├── main.c                           # Implementação em C
-├── main.py                          # Implementação em Python (sklearn)
+├── autoral.c                        # Implementação autoral em C
+├── padrao_ouro.py                   # Implementação padrão ouro em Python (sklearn)
 ├── view.py                          # Visualizador interativo
+├── comparison.py                    # Gera resultados_finais.txt
 │
 ├── animacao_treinamento_exemplo.gif # Animação gerada pelo view.py
 |
