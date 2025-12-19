@@ -22,11 +22,13 @@
 #include <string.h>
 #include <stdarg.h>
 
-// Importa as funções que criamos para interagir com a memória
-#include "dataset_ram.h"
-#include "random_utils.h"
+// Importa as funções que criamos para interagir com a memória Flash
+#include "dataset_flash.h"
 // Importa as funções do nosso código de Regressão Linear
 #include "gradient_engine.h"
+
+// ativa o loop para medição de energia ou não
+//#define MODE_FLASH_LOOP
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -67,7 +69,7 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN 0 */
 
 /**
- * @brief Lê uma linha de texto da UART2 com timeout curto
+ * @brief Lê uma linha de texto da UART2
  * @brief A leitura para ao encontrar '\n' ou atingir o tamanho máximo
  * @brief Ignora '\r'
  * @param buf Ponteiro para o buffer onde a string será armazenada
@@ -78,18 +80,11 @@ int read_line(char *buf, int maxlen)
 {
     int pos = 0; // Posição atual no buffer
 
-    // Loop de leitura de caractere com timeout curto
+    // Loop de leitura de caractere
     while (pos < maxlen - 1)
     {
         uint8_t c;
-        // Timeout de 100ms para permitir recebimento rápido
-        HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, &c, 1, 100);
-
-        // Se timeout ou erro, retornar o que temos
-        if (status != HAL_OK)
-        {
-            break;
-        }
+        HAL_UART_Receive(&huart2, &c, 1, HAL_MAX_DELAY);
 
         if (c == '\n') break;
         if (c == '\r') continue;
@@ -112,7 +107,10 @@ void printTX(const char *fmt, ...) {
 }
 /* USER CODE END 0 */
 
-
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
@@ -140,102 +138,68 @@ int main(void)
   MX_GPIO_Init();        // Configura os pinos
   MX_USART2_UART_Init(); // Configura a porta serial para comunicação
 
-  printTX(">> Sistema iniciado. UART OK.\r\n");
 
   /* USER CODE BEGIN 2 */
 
-  char rx[64];  // Buffer para receber linhas da UART
-  float x, y;   // Variáveis temporárias para armazenar os floats lidos
-  uint16_t pontos_recebidos = 0;
-  uint16_t pontos_necessarios = DATASET_RAM_SAMPLES;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+#ifndef MODE_FLASH_LOOP
+  /* =========================
+   * MODO 1 – GRAVA DATASET
+   * ========================= */
+  printTX(">> Sistema iniciado. UART OK.\r\n");
+
+  char rx[64];
+  float x, y;
+  int index = 0;
+
+#ifndef DEBUG
+  flash_dataset_erase();
+#endif
+
+  printTX(">> Aguardando dataset...\r\n");
+
   while (1)
   {
+      read_line(rx, sizeof(rx));
 
-      // Resetar contador e buffer RAM
-      pontos_recebidos = 0;
-      dataset_ram_reset();
+      if (strncmp(rx, "FIM", 3) == 0)
+          break;
 
-      HAL_Delay(500);
-
-      // Informar ao Python quantos pontos enviar
-      printTX("READY:%d\r\n", pontos_necessarios);
-
-      // --- LOOP DE RECEBIMENTO SIMPLIFICADO (SEM ACK) ---
-      // Controle de timeout para evitar travamento
-      uint32_t inicio = HAL_GetTick();
-      uint32_t timeout_ms = 30000; // 30 segundos de timeout total
-
-      while (pontos_recebidos < pontos_necessarios)
+      if (sscanf(rx, "%f,%f", &x, &y) == 2)
       {
-          // Verificar timeout global
-          if ((HAL_GetTick() - inicio) > timeout_ms)
-          {
-              printTX(">> ERRO: Timeout no recebimento (%d/%d pontos)\r\n",
-                      pontos_recebidos, pontos_necessarios);
-              break;
-          }
-
-          // Lê uma linha (com timeout curto de 100ms)
-          int len = read_line(rx, sizeof(rx));
-
-          // Se não recebeu nada, continuar tentando
-          if (len == 0)
-          {
-              continue;
-          }
-
-          // Verifica comando FIM (caso o Python termine antes)
-          if (strncmp(rx, "FIM", 3) == 0)
-          {
-              printTX("ACK_FIM\r\n");
-              break;
-          }
-
-          // Tenta ler os dados
-          if (sscanf(rx, "%f,%f", &x, &y) == 2)
-          {
-              dataset_ram_add_point(x, y);
-              pontos_recebidos++;
-
-              // Feedback visual a cada 100 pontos (não envia ACK individual)
-              if (pontos_recebidos % 100 == 0)
-              {
-                  printTX(">> Recebidos: %d/%d\r\n",
-                          pontos_recebidos, pontos_necessarios);
-              }
-          }
-          // Se não parsear corretamente, ignora silenciosamente e continua
-          // (não envia NACK, apenas descarta linha inválida)
+          flash_dataset_write_float(index++, x);
+          flash_dataset_write_float(index++, y);
       }
-
-      // Verificar se recebemos pontos suficientes
-      uint16_t total_recebido = dataset_ram_get_count();
-
-      if (total_recebido < 10)
-      {
-          printTX(">> ERRO: Dados insuficientes (%d pontos)\r\n", total_recebido);
-          continue; // Volta para aguardar novo envio
-      }
-
-      printTX(">> MSG: %d pontos carregados OK!\r\n", total_recebido);
-      printTX(">> MSG: Iniciando treino...\r\n");
-
-      // Treinar com subconjunto aleatório
-      gradient_run();
-
-      printTX(">> MSG: Treino finalizado.\r\n");
-
-      // Enviar resultado final com a TAG para o Python filtrar
-      printTX("RESULTADO: a=%.10f b=%.10f mse=%.10f\r\n",
-              gradient_a(), gradient_b(), gradient_mse());
-
-      // Pequena pausa antes do próximo ciclo
-      HAL_Delay(1000);
   }
-  /* USER CODE END 2 */
+
+  printTX(">> Treinando...\r\n");
+  gradient_run();
+
+  printTX("a=%.6f b=%.6f mse=%.6f\r\n",
+          gradient_a(),
+          gradient_b(),
+          gradient_mse());
+
+  while (1); // fim
+
+#else
+  /* =========================
+   * MODO 2 – EXECUÇÃO EM LOOP
+   * (MEDIÇÃO DE ENERGIA)
+   * ========================= */
+
+  // Pequeno delay só para estabilidade elétrica
+  HAL_Delay(100);
+
+  // Loop infinito do algoritmo
+  while (1)
+  {
+      HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	  gradient_run();
+
+  }
+
+#endif
 }
 
 /**

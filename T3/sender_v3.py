@@ -19,7 +19,9 @@ ARQUIVO_CSV = 'data/dataset0.csv'
 # MODO DE OPERACAO DO SCRIPT
 # 'GRAVAR': Envia dados para a Flash (STM32 deve estar com MODE_FLASH_LOOP comentado)
 # 'MONITORAR': Apenas le os prints do treino (STM32 deve estar com MODE_FLASH_LOOP ativo)
-MODO_OPERACAO = 'MONITORAR' 
+
+MODO_OPERACAO = 'GRAVAR' 
+# MODO_OPERACAO = 'MONITORAR' 
 
 # ============================================================================
 # FUNCOES DE UTILIDADE
