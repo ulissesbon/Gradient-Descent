@@ -194,7 +194,7 @@ int main(void)
   // Loop infinito do algoritmo
   while (1)
   {
-      HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 	  gradient_run();
 
   }
