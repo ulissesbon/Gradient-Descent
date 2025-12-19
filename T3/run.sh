@@ -3,6 +3,9 @@
 # gerar dados
 python3 generate_data.py 
 
+# embaralhar sample de 75% e gerar arquivos shuffle
+python3 shuffle.py 
+
 # resetar/apagar results.txt
 rm results.txt
 

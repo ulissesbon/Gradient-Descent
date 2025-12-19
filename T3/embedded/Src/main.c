@@ -195,8 +195,8 @@ int main(void)
   while (1)
   {
     HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    // TODO: adicionar timer e enviar medição por uart pro python
 	  gradient_run();
-
   }
 
 #endif
