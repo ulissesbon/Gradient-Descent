@@ -5,13 +5,15 @@ import sys
 import os
 import re
 import math
+import random
 
 # ================= CONFIGURAÇÕES =================
-PORTA_SERIAL = '/dev/ttyACM0'  # Linux/Mac. No Windows use 'COM3', 'COM4'
+PORTA_SERIAL = '/dev/ttyACM0'  
 BAUDRATE = 115200
-ARQUIVO_CSV = 'data/original/dataset_original0.csv' # Caminho do dataset
+ARQUIVO_CSV = 'data/original/dataset_original0.csv'
 NUMERO_EXECUCOES = 20
-NOME_ARQUIVO_SAIDA = 'resultados_T3_original.txt'
+TAMANHO_BATCH = 550
+NOME_ARQUIVO_SAIDA = 'resultados_ram_shuffle_550.txt'
 # =================================================
 
 def carregar_dados_csv(caminho):
@@ -29,9 +31,14 @@ def carregar_dados_csv(caminho):
                 dados.append((linha[0], linha[1]))
     return dados
 
-def realizar_ciclo(ser, dados, n_ciclo):
+def realizar_ciclo(ser, dados_para_enviar, n_ciclo):
+    """
+    Recebe uma lista de dados JÁ EMBARALHADA e envia.
+    """
     print(f"\n--- EXECUÇÃO {n_ciclo + 1}/{NUMERO_EXECUCOES} ---")
-    
+    print(f"[PYTHON] Enviando batch de {len(dados_para_enviar)} pontos (Ordem Aleatória).")
+
+    # 1. Aguarda o STM32
     print("[AGUARDANDO] Esperando 'READY' do STM32...")
     while True:
         try:
@@ -40,8 +47,9 @@ def realizar_ciclo(ser, dados, n_ciclo):
         if linha and "READY" in linha:
             break
 
-    print(f"[ENVIO] Enviando {len(dados)} pontos...")
-    for x, y in dados:
+    # 2. Envia os dados
+    print(f"[ENVIO] Transmitindo...")
+    for x, y in dados_para_enviar:
         ser.write(f"{x},{y}\n".encode())
         time.sleep(0.002) 
         while True:
@@ -50,9 +58,11 @@ def realizar_ciclo(ser, dados, n_ciclo):
                 if "ACK" in resp: break
             except: pass
     
+    # 3. Finaliza envio
     ser.write(b"FIM\n")
     print("[PROCESSANDO] Aguardando término do treino...")
 
+    # 4. Captura Resultados
     while True:
         try:
             linha = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -61,7 +71,7 @@ def realizar_ciclo(ser, dados, n_ciclo):
         if "RESULTADO:" in linha:
             print(f"[RETORNO] {linha}")
             
-            # Regex para capturar float (incluindo notação científica)
+            # Regex completo para todos os campos
             match_a = re.search(r'a=([\d\.\-eE]+)', linha)
             match_b = re.search(r'b=([\d\.\-eE]+)', linha)
             match_mse = re.search(r'mse=([\d\.\-eE]+)', linha)
@@ -70,7 +80,7 @@ def realizar_ciclo(ser, dados, n_ciclo):
             
             if match_tempo and match_a and match_b and match_mse:
                 tempo_ms = int(match_tempo.group(1))
-                tempo_s = tempo_ms / 1000.0  # Converte ms para segundos
+                tempo_s = tempo_ms / 1000.0
                 
                 res = {
                     'iteracao': n_ciclo + 1,
@@ -99,12 +109,15 @@ def salvar_relatorio_txt(dados_coletados):
 
     with open(NOME_ARQUIVO_SAIDA, 'w', encoding='utf-8') as f:
         f.write("=================================================================================\n")
-        f.write(f" RELATÓRIO DE PERFORMANCE: VERSÃO T3 ORIGINAL\n")
+        f.write(f" RELATÓRIO: TREINAMENTO RAM (VALORES FIXOS, ORDEM SHUFFLED)\n")
         f.write("=================================================================================\n\n")
         f.write(f"Data/Hora: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Dataset Base: {ARQUIVO_CSV}\n")
+        f.write(f"Amostras Fixas: {TAMANHO_BATCH} (Mesmos valores, ordem variável)\n")
         f.write(f"Configuração de Épocas: {epocas_config}\n")
         f.write(f"Total de Execuções: {len(dados_coletados)}\n\n")
         
+        # Tabela Detalhada
         header = f"{'#':<3} | {'Tempo (s)':<10} | {'A (Inclinação)':<15} | {'B (Intercepto)':<15} | {'MSE Final':<15}\n"
         f.write(header)
         f.write("-" * len(header) + "\n")
@@ -132,13 +145,32 @@ def main():
         print(f"[ERRO] Falha na serial: {e}")
         return
 
-    pontos = carregar_dados_csv(ARQUIVO_CSV)
+    print(f"[INFO] Carregando dataset base...")
+    pontos_todos = carregar_dados_csv(ARQUIVO_CSV)
+    print(f"[INFO] Total de pontos no CSV: {len(pontos_todos)}")
+
+    if len(pontos_todos) < TAMANHO_BATCH:
+        print(f"[ERRO] Dataset tem menos que {TAMANHO_BATCH} pontos.")
+        return
+
+    # --- LÓGICA DE SELEÇÃO FIXA ---
+    # Seleciona os primeiros 550 pontos (ou qualquer outra fatia) UMA ÚNICA VEZ.
+    # Esses são os "Valores Fixos" que serão usados em todas as 20 rodadas.
+    batch_fixo = pontos_todos[:TAMANHO_BATCH]
+    print(f"[CONFIG] Batch de {len(batch_fixo)} pontos FIXADO para o teste.")
+
     resultados = []
 
     try:
         for i in range(NUMERO_EXECUCOES):
-            res = realizar_ciclo(ser, pontos, i)
+            # --- LÓGICA DE EMBARALHAMENTO ---
+            # Cria uma cópia dos valores fixos e embaralha APENAS A ORDEM
+            batch_da_vez = batch_fixo[:] 
+            random.shuffle(batch_da_vez)
+            
+            res = realizar_ciclo(ser, batch_da_vez, i)
             if res: resultados.append(res)
+            
     except KeyboardInterrupt:
         print("\nCancelado.")
     finally:
