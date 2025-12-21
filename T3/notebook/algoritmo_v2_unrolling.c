@@ -72,7 +72,7 @@
 #define EPOCAS_TREINAMENTO 30000
 
 /* Nome da melhoria para debugar */
-#define NOME_MELHORIA "v0_original"
+#define NOME_MELHORIA "v2_unrolling"
 /* 
   Taxas de aprendizado (learning rates):
   - Taxa menor para inclinação (a) pois x pode ter valores grandes
@@ -225,32 +225,32 @@ static float calcular_mse(float a, float b) {
  * @param b_centralizado Ponteiro para o coeficiente linear (centralizado)
  * @note Esta função lê as variáveis globais g_x_centralizado, g_y e g_n.
  */
-static void executar_epoca_gradiente(float *a_centralizado,
-                                     float *b_centralizado)
-{
-    float gradiente_a = 0.0;
-    float gradiente_b = 0.0;
 
-    /* Calcular gradientes acumulando contribuições de cada amostra */
-    for (int i = 0; i < g_n; i++) {
-        float x_cent = g_x_centralizado[i];  /* x - média(x) */
-        float y_predito = (*a_centralizado) * x_cent + (*b_centralizado);
-        float erro = y_predito - g_y[i];
+static inline void executar_epoca_gradiente(float *a_c, float *b_c) {
+    float grad_a = 0.0f, grad_b = 0.0f;
+    float a = *a_c; 
+    float b = *b_c;
 
-        /* Acumular gradientes */
-        gradiente_a += erro * x_cent;  /* ∂J/∂a ∝ Σ(erro * x_cent) */
-        gradiente_b += erro;           /* ∂J/∂b ∝ Σ(erro) */
+    /* OTIMIZAÇÃO: Loop Unrolling fator 5 */
+    for (int i = 0; i < g_n; i += 5) {
+        float e0 = (a * g_x_centralizado[i]) + b - g_y[i];
+        grad_a += e0 * g_x_centralizado[i]; grad_b += e0;
+        
+        float e1 = (a * g_x_centralizado[i+1]) + b - g_y[i+1];
+        grad_a += e1 * g_x_centralizado[i+1]; grad_b += e1;
+
+        float e2 = (a * g_x_centralizado[i+2]) + b - g_y[i+2];
+        grad_a += e2 * g_x_centralizado[i+2]; grad_b += e2;
+
+        float e3 = (a * g_x_centralizado[i+3]) + b - g_y[i+3];
+        grad_a += e3 * g_x_centralizado[i+3]; grad_b += e3;
+
+        float e4 = (a * g_x_centralizado[i+4]) + b - g_y[i+4];
+        grad_a += e4 * g_x_centralizado[i+4]; grad_b += e4;
     }
-
-    /* Normalizar gradientes pela quantidade de amostras */
-    gradiente_a = (2.0 * gradiente_a) / (float)g_n;
-    gradiente_b = (2.0 * gradiente_b) / (float)g_n;
-
-    /* Atualizar parâmetros (descida do gradiente) */
-    *a_centralizado -= TAXA_APRENDIZADO_INCLINACAO * gradiente_a;
-    *b_centralizado -= TAXA_APRENDIZADO_INTERCEPTO * gradiente_b;
+    *a_c -= TAXA_APRENDIZADO_INCLINACAO * (2.0f * grad_a / (float)g_n);
+    *b_c -= TAXA_APRENDIZADO_INTERCEPTO * (2.0f * grad_b / (float)g_n);
 }
-
 
 /* ========================================================================== */
 /* FUNÇÃO DE TREINAMENTO COMPLETO                                             */

@@ -72,7 +72,7 @@
 #define EPOCAS_TREINAMENTO 30000
 
 /* Nome da melhoria para debugar */
-#define NOME_MELHORIA "v0_original"
+#define NOME_MELHORIA "v1_inline"
 /* 
   Taxas de aprendizado (learning rates):
   - Taxa menor para inclinação (a) pois x pode ter valores grandes
@@ -225,32 +225,18 @@ static float calcular_mse(float a, float b) {
  * @param b_centralizado Ponteiro para o coeficiente linear (centralizado)
  * @note Esta função lê as variáveis globais g_x_centralizado, g_y e g_n.
  */
-static void executar_epoca_gradiente(float *a_centralizado,
-                                     float *b_centralizado)
-{
-    float gradiente_a = 0.0;
-    float gradiente_b = 0.0;
-
-    /* Calcular gradientes acumulando contribuições de cada amostra */
+/* OTIMIZAÇÃO: Inline evita o overhead de 30.000 chamadas de função */
+static inline void executar_epoca_gradiente(float *a_c, float *b_c) {
+    float grad_a = 0.0f, grad_b = 0.0f;
     for (int i = 0; i < g_n; i++) {
-        float x_cent = g_x_centralizado[i];  /* x - média(x) */
-        float y_predito = (*a_centralizado) * x_cent + (*b_centralizado);
-        float erro = y_predito - g_y[i];
-
-        /* Acumular gradientes */
-        gradiente_a += erro * x_cent;  /* ∂J/∂a ∝ Σ(erro * x_cent) */
-        gradiente_b += erro;           /* ∂J/∂b ∝ Σ(erro) */
+        float x = g_x_centralizado[i];
+        float erro = ( (*a_c) * x + (*b_c) ) - g_y[i];
+        grad_a += erro * x;
+        grad_b += erro;
     }
-
-    /* Normalizar gradientes pela quantidade de amostras */
-    gradiente_a = (2.0 * gradiente_a) / (float)g_n;
-    gradiente_b = (2.0 * gradiente_b) / (float)g_n;
-
-    /* Atualizar parâmetros (descida do gradiente) */
-    *a_centralizado -= TAXA_APRENDIZADO_INCLINACAO * gradiente_a;
-    *b_centralizado -= TAXA_APRENDIZADO_INTERCEPTO * gradiente_b;
+    *a_c -= TAXA_APRENDIZADO_INCLINACAO * (2.0f * grad_a / (float)g_n);
+    *b_c -= TAXA_APRENDIZADO_INTERCEPTO * (2.0f * grad_b / (float)g_n);
 }
-
 
 /* ========================================================================== */
 /* FUNÇÃO DE TREINAMENTO COMPLETO                                             */
@@ -265,6 +251,7 @@ static void executar_epoca_gradiente(float *a_centralizado,
  *   3. Inicializar parâmetros (a=0, b=média_y)
  *   4. Executar épocas de gradiente descendente
  *   5. Converter parâmetros para escala original
+ *   6. Salvar histórico em CSV
  * 
  * Conversão para escala original:
  *   a_original = a_centralizado
@@ -276,19 +263,31 @@ static void executar_epoca_gradiente(float *a_centralizado,
  * @note Esta função chama outras funções que também acessam globais 
  * (calcular_media, executar_epoca_gradiente, calcular_mse).
  */
-static void treinar_modelo(float *a_original, float *b_original) {
+static void treinar_modelo(float *a_original,
+                          float *b_original)
+{
+    /* Passo 1: Calcular estatísticas dos dados */
     float media_x = calcular_media(g_x, g_n);
     float media_y = calcular_media(g_y, g_n);
-    for (int i = 0; i < g_n; i++) g_x_centralizado[i] = g_x[i] - media_x;
-
-    float a_c = 0.0f;
-    float b_c = media_y;
-
-    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
-        executar_epoca_gradiente(&a_c, &b_c);
+    
+    /* Passo 2: Centralizar valores de X */
+    for (int i = 0; i < g_n; i++) {
+        g_x_centralizado[i] = g_x[i] - media_x;
     }
-    *a_original = a_c;
-    *b_original = b_c - a_c * media_x;
+
+    /* Passo 3: Inicializar parâmetros */
+    float a_centralizado = 0.0;      /* Inclinação começa em zero */
+    float b_centralizado = media_y;  /* Intercepto começa na média de Y */
+
+    /* Passo 4: Loop principal de treinamento */
+    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
+        /* Executar uma época de descida de gradiente */
+        executar_epoca_gradiente(&a_centralizado, &b_centralizado);
+    }
+
+    /* Passo 5: Converter parâmetros finais para escala original */
+    *a_original = a_centralizado;
+    *b_original = b_centralizado - a_centralizado * media_x;
 }
 
 /**

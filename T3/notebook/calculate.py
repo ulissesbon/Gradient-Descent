@@ -1,50 +1,27 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def processar_resultados():
-    try:
-        df = pd.read_csv('results_brutos.csv')
-        if df.empty:
-            print("Erro: O arquivo results_brutos.csv está vazio.")
-            return
-            
-        # Forçar conversão para numérico para evitar erros de string
-        df['tempo'] = pd.to_numeric(df['tempo'], errors='coerce')
-        df = df.dropna(subset=['tempo'])
-
-        # Agrupar e calcular 
-        stats = df.groupby(['versao', 'dataset']).agg({
-            'tempo': ['mean', 'std', 'count'],
-            'code_sz': 'first',
-            'data_sz': 'first'
-        }).reset_index()
-
-        stats.columns = ['Versão', 'Dataset', 'Média', 'Desvio', 'Amostras', 'Flash', 'RAM']
-        
-        # Preencher NaN no desvio com 0.0 (ocorre se Amostras < 2)
-        stats['Desvio'] = stats['Desvio'].fillna(0.0)
-
-        print("\n--- ESTATÍSTICAS DA EXPERIMENTAÇÃO ---")
-        print(stats.to_string(index=False))
-        
-        stats.to_csv('relatorio_final.csv', index=False)
-
-        # Gráfico 
-        plt.figure(figsize=(10, 6))
-        for versao in stats['Versão'].unique():
-            sub = stats[stats['Versão'] == versao]
-            plt.errorbar(sub['Dataset'], sub['Média'], yerr=sub['Desvio'], 
-                         fmt='-o', capsize=5, label=versao)
-
-        plt.title('Performance do Algoritmo: Média e Desvio Padrão')
-        plt.xlabel('Dataset ID')
-        plt.ylabel('Tempo (s)')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig('melhoria_grafico.png')
-        
-    except Exception as e:
-        print(f"Erro no processamento: {e}")
+def gerar_grafico_final():
+    df = pd.read_csv('results_brutos.csv')
+    stats = df.groupby('versao')['tempo'].mean().reset_index()
+    
+    # Define v0_original como base 100%
+    t_ref = stats.loc[stats['versao'] == 'v0_original', 'tempo'].values[0]
+    stats['Speedup'] = t_ref / stats['tempo']
+    
+    plt.figure(figsize=(10, 6))
+    colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99']
+    bars = plt.bar(stats['versao'], stats['tempo'], color=colors)
+    
+    plt.title('Comparativo de Performance (Compilado com -O2)')
+    plt.ylabel('Tempo de Execução (s)')
+    
+    for bar, speedup in zip(bars, stats['Speedup']):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), 
+                 f'{speedup:.2f}x mais rápido', ha='center', va='bottom')
+    
+    plt.savefig('comparativo_final_O2.png')
+    print("Gráfico comparativo_final_O2.png gerado com sucesso.")
 
 if __name__ == "__main__":
-    processar_resultados()
+    gerar_grafico_final()
