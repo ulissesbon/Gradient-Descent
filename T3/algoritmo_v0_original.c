@@ -322,9 +322,9 @@ static void treinar_modelo(float *a_original,
  * @param tempo_cpu Tempo de CPU gasto no treinamento
  */
 static void salvar_parametros_finais(int indice_dataset, float a, float b, float mse, double tempo_cpu) {
-    FILE *fp = fopen("results.txt", "a");  // modo append
+    FILE *fp = fopen("results.txt", "a");
     if (fp) {
-        fprintf(fp, "(Notebook) Dataset %d: a=%.10f, b=%.10f, mse=%.10f, tempo_cpu=%.6f\n", 
+        fprintf(fp, "(Notebook) Dataset %d: a=%.6f, b=%.6f, mse=%.6f, tempo_cpu=%.6f\n", 
                 indice_dataset, a, b, mse, tempo_cpu);
         fclose(fp);
     }
