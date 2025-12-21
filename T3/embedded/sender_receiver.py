@@ -14,7 +14,7 @@ BAUDRATE = 115200
 TIMEOUT_SERIAL = 2
 
 # Arquivo de dados para o Modo Gravacao
-ARQUIVO_CSV = 'data/dataset0.csv'
+ARQUIVO_CSV = 'data/shuffle/dataset_randomico0.csv'
 
 # MODO DE OPERACAO DO SCRIPT
 # 'GRAVAR': Envia dados para a Flash (STM32 deve estar com MODE_FLASH_LOOP comentado)

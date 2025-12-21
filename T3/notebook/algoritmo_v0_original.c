@@ -356,7 +356,7 @@ int main(void) {
         /* Construir caminho do arquivo */
         char caminho_dataset[256];
         snprintf(caminho_dataset, sizeof(caminho_dataset), 
-                 "shuffle/dataset_randomico%d.csv", i);
+                 "data/shuffle/dataset_randomico%d.csv", i);
 
         printf(" Dataset %d: %s\n", i, caminho_dataset);
         printf("-----------------------------------------------------------------------\n");
