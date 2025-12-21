@@ -4,6 +4,8 @@ venv
 Tests
 Tests/test
 data/*
-historico/*
+*/historico/*
+*/original/*
+*/shuffle/*
 embedded/STM32/*
 !embedded/STM32/Core/Src/main.c

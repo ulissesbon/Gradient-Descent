@@ -7,32 +7,7 @@ for i in range(4):
     arquivo_destino = f'shuffle/dataset_randomico{i}.csv'
 
     # ---------------------------------------------------------
-    # PASSO 1: Gerar os dados e criar o primeiro CSV
-    # ---------------------------------------------------------
-    dados_originais = []
-
-    print(f"Gerando {arquivo_origem}...")
-
-    for x in range(1, 1001):
-        # Gera ruído aleatório entre -0.5 e 0.5
-        ruido = random.uniform(-0.5, 0.5)
-        
-        # Calcula y = 2*x + 1 + ruído
-        y = 2 * x + 1 + ruido
-        
-        # Adiciona à lista (formatando para garantir legibilidade, opcional)
-        dados_originais.append([x, y])
-
-    # Escreve o primeiro arquivo CSV
-    with open(arquivo_origem, mode='w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(['x', 'y'])  # Cabeçalho
-        writer.writerows(dados_originais)
-
-    print(f"Sucesso! {arquivo_origem} criado com 1000 linhas.")
-
-    # ---------------------------------------------------------
-    # PASSO 2: Ler o primeiro CSV e criar o segundo com 750 pontos
+    # Ler o CSV original e criar o segundo com 750 pontos
     # ---------------------------------------------------------
     print(f"\nLendo {arquivo_origem} e gerando {arquivo_destino}...")
 

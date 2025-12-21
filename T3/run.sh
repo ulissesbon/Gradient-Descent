@@ -1,13 +1,16 @@
 #!/bin/sh
 
+# resetar/apagar arquivos gerados
+rm results.txt
+rm original/*.csv
+rm shuffle/*.csv
+
 # gerar dados
 python3 generate_data.py 
 
 # embaralhar sample de 75% e gerar arquivos shuffle
 python3 shuffle.py 
 
-# resetar/apagar results.txt
-rm results.txt
 
 # rodar notebook e gravar results.txt
 gcc -o main notebook.c

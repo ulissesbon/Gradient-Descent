@@ -1,0 +1,4 @@
+(Notebook) Dataset 0: a=1.9999825954, b=1.0507812500, mse=2.1541724205, tempo_cpu=0.140774
+(Notebook) Dataset 1: a=60.0000343323, b=70.0117187500, mse=2.2318122387, tempo_cpu=0.143703
+(Notebook) Dataset 2: a=100.0000839233, b=1000.0273437500, mse=2.0045003891, tempo_cpu=0.145750
+(Notebook) Dataset 3: a=299.9994506836, b=0.1875000000, mse=2.0390367508, tempo_cpu=0.143419

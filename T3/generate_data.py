@@ -31,7 +31,7 @@ class ConfiguracaoDataset:
     
     
     # Diretório de saída
-    DIRETORIO_SAIDA = "data"
+    DIRETORIO_SAIDA = "original"
 
 
 # ============================================================================
@@ -190,7 +190,7 @@ def main():
         x, y, parametros = gerar_dataset(indice, valores_x, config)
         
         # Construir caminho do arquivo
-        caminho_arquivo = f"{config.DIRETORIO_SAIDA}/dataset{indice}.csv"
+        caminho_arquivo = f"{config.DIRETORIO_SAIDA}/dataset_original{indice}.csv"
         
         # Salvar em CSV
         salvar_dataset_csv(x, y, caminho_arquivo)

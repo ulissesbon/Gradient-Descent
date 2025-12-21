@@ -59,6 +59,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 /* ========================================================================== */
 /* CONFIGURAÇÕES E CONSTANTES                                                 */
@@ -68,7 +69,7 @@
 #define QUANTIDADE_ARQUIVOS 4
 
 /* Número de amostras por dataset */
-#define QUANTIDADE_AMOSTRAS 1000
+#define QUANTIDADE_AMOSTRAS 750
 
 /* Número de iterações de treinamento */
 #define EPOCAS_TREINAMENTO 30000
@@ -351,12 +352,13 @@ static void treinar_modelo(float *a_original,
  * @param a Coeficiente angular final
  * @param b Coeficiente linear final
  * @param mse Erro quadrático médio final
+ * @param tempo_cpu Tempo de CPU gasto no treinamento
  */
-static void salvar_parametros_finais(int indice_dataset, float a, float b, float mse) {
-    FILE *fp = fopen("resultados_finais.txt", "a");  // modo append
+static void salvar_parametros_finais(int indice_dataset, float a, float b, float mse, double tempo_cpu) {
+    FILE *fp = fopen("results.txt", "a");  // modo append
     if (fp) {
-        fprintf(fp, "(C Lang) Dataset %d: a=%.10f, b=%.10f, mse=%.10f\n", 
-                indice_dataset, a, b, mse);
+        fprintf(fp, "(Notebook) Dataset %d: a=%.10f, b=%.10f, mse=%.10f, tempo_cpu=%.6f\n", 
+                indice_dataset, a, b, mse, tempo_cpu);
         fclose(fp);
     }
 }
@@ -388,7 +390,7 @@ int main(void) {
         char caminho_dataset[256];
         char caminho_historico[256];
         snprintf(caminho_dataset, sizeof(caminho_dataset), 
-                 "data/dataset%d.csv", i);
+                 "shuffle/dataset_randomico%d.csv", i);
         snprintf(caminho_historico, sizeof(caminho_historico), 
                  "historico/historico_treinamento_dataset%d.csv", i);
 
@@ -403,16 +405,27 @@ int main(void) {
         
         printf("  Carregado: %d amostras\n\n", g_n);
 
-        /* Treinar modelo */
+        /* Variáveis para medição de tempo */
+        clock_t inicio, fim;
+        double tempo_cpu;
+
+        /* Treinar modelo - MEDIÇÃO APENAS DO ALGORITMO */
         float a_treinado = 0.0;
         float b_treinado = 0.0;
+        
+        inicio = clock(); 
         treinar_modelo(&a_treinado, &b_treinado, caminho_historico);
+        fim = clock();
+        
+        tempo_cpu = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
+        printf("\n  TEMPO DE EXECUÇÃO DO ALGORITMO: %f segundos\n", tempo_cpu);
+
 
         // Calcular MSE final
         float mse_final = calcular_mse(a_treinado, b_treinado);
 
         // Salvar resultados
-        salvar_parametros_finais(i, a_treinado, b_treinado, mse_final);
+        salvar_parametros_finais(i, a_treinado, b_treinado, mse_final, tempo_cpu);
 
         /* Exibir resultados finais */
         printf("\n");
