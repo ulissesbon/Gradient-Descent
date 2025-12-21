@@ -72,7 +72,10 @@
 #define EPOCAS_TREINAMENTO 30000
 
 /* Nome da melhoria para debugar */
-#define NOME_MELHORIA "v2_unrolling"
+#ifndef NOME_MELHORIA
+    #define NOME_MELHORIA "desconhecido"
+#endif
+
 /* 
   Taxas de aprendizado (learning rates):
   - Taxa menor para inclinação (a) pois x pode ter valores grandes
@@ -300,9 +303,11 @@ static void treinar_modelo(float *a_original, float *b_original) {
  * @param tempo_cpu Tempo de CPU gasto no treinamento
  */
 static void salvar_parametros_finais(float a, float b, float mse, double tempo_cpu) {
-    FILE *fp = fopen("results.txt", "a");
+    FILE *fp = fopen("results.csv", "a");
     if (fp) {
-        fprintf(fp, "(Notebook) %s: a=%.6f, b=%.6f, mse=%.6f, tempo_cpu=%.6f\n", 
+        // Formato: versao,a,b,mse,tempo,code_sz,data_sz
+        // Nota: code_sz e data_sz serão preenchidos pelo script bash por fora ou deixados vazios aqui
+        fprintf(fp, "%s,%.6f,%.6f,%.6f,%.6f\n", 
                 NOME_MELHORIA, a, b, mse, tempo_cpu);
         fclose(fp);
     }

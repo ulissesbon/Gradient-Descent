@@ -73,8 +73,10 @@
 #define EPOCAS_TREINAMENTO 30000
 
 /* Nome da melhoria para debugar */
-#define SCALE 1000
-#define NOME_MELHORIA "v3_fixed_point"
+#define SCALE 1024  // Potência de 2 é mais eficiente para shift (>> 10)
+#ifndef NOME_MELHORIA
+    #define NOME_MELHORIA "desconhecido"
+#endif
 
 /* 
 Taxas de aprendizado (learning rates):
@@ -283,37 +285,51 @@ static inline void executar_epoca_gradiente(float *a_c, float *b_c) {
  * @note Esta função chama outras funções que também acessam globais 
  * (calcular_media, executar_epoca_gradiente, calcular_mse).
  */
-static void treinar_modelo(float *a_final, float *b_final) {
-    // Conversão inicial: float -> fixed point
+// Função de treino otimizada para hardware sem FPU
+static void treinar_modelo(float *a_f, float *b_f) {
+    float mx = calcular_media(g_x, g_n);
+    float my = calcular_media(g_y, g_n);
+    
+    // Parâmetros em Ponto Fixo (Q16.10)
+    int32_t a_fp = 0;
+    int32_t b_fp = (int32_t)(my * SCALE);
+    int32_t mx_fp = (int32_t)(mx * SCALE);
+    
+    // Dados centralizados convertidos para Ponto Fixo uma única vez
+    int32_t g_xc_fp[QUANTIDADE_AMOSTRAS];
+    int32_t g_y_fp[QUANTIDADE_AMOSTRAS];
     for(int i=0; i<g_n; i++) {
-        g_x_fp[i] = (int32_t)(g_x[i] * SCALE);
+        g_xc_fp[i] = (int32_t)((g_x[i] - mx) * SCALE);
         g_y_fp[i] = (int32_t)(g_y[i] * SCALE);
     }
-    
-    int32_t a = 0;
-    int32_t b = (int32_t)(calcular_media(g_y, g_n) * SCALE);
-    int32_t media_x = (int32_t)(calcular_media(g_x, g_n) * SCALE);
-    
-    for(int i=0; i<g_n; i++) g_xc_fp[i] = g_x_fp[i] - media_x;
-    
-    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
-        int64_t grad_a = 0, grad_b = 0; // 64 bits para evitar overflow no acúmulo
-        for (int i = 0; i < g_n; i++) {
-            // y_pred = (a * x) / SCALE + b
-            int32_t y_pred = (int32_t)(((int64_t)a * g_xc_fp[i]) / SCALE) + b;
-            int32_t erro = y_pred - g_y_fp[i];
-            grad_a += (int64_t)erro * g_xc_fp[i] / SCALE;
-            grad_b += erro;
-        }
-        // Atualização usando a taxa de aprendizado (1e-5 -> / 100000)
-        a -= (int32_t)((2 * grad_a / g_n) / 100000);
-        b -= (int32_t)((2 * grad_b / g_n) / 100000);
-    }
-    *a_final = a;
-    *b_final = b - (int32_t)(((int64_t)a * media_x) / SCALE);
 
-    *a_final /= SCALE; 
-    *b_final /= SCALE;
+    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
+        int64_t grad_a = 0, grad_b = 0;
+        
+        // Loop Unrolling cumulativo
+        for (int i = 0; i < g_n; i += 2) {
+            // y_pred = (a * x) / SCALE + b
+            int32_t err0 = (int32_t)(((int64_t)a_fp * g_xc_fp[i]) >> 10) + b_fp - g_y_fp[i];
+            grad_a += (int64_t)err0 * g_xc_fp[i]; 
+            grad_b += err0;
+            
+            int32_t err1 = (int32_t)(((int64_t)a_fp * g_xc_fp[i+1]) >> 10) + b_fp - g_y_fp[i+1];
+            grad_a += (int64_t)err1 * g_xc_fp[i+1]; 
+            grad_b += err1;
+        }
+
+        // Atualização dos pesos (Ajuste da Taxa de Aprendizado para Ponto Fixo)
+        // Como TAXA é 1e-5, dividimos por 100.000. O (>> 10) compensa o SCALE do grad_a.
+        a_fp -= (int32_t)((grad_a >> 10) / 50000); 
+        b_fp -= (int32_t)(grad_b / 50000);
+    }
+
+    // DESESCALONAMENTO: Converte de volta para float para o relatório final
+    // a_original = a_centralizado
+    *a_f = (float)a_fp / SCALE;
+    // b_original = b_centralizado - a_centralizado * media_x
+    int32_t b_orig_fp = b_fp - (int32_t)(((int64_t)a_fp * mx_fp) >> 10);
+    *b_f = (float)b_orig_fp / SCALE;
 }
 
 
@@ -326,9 +342,11 @@ static void treinar_modelo(float *a_final, float *b_final) {
  * @param tempo_cpu Tempo de CPU gasto no treinamento
  */
 static void salvar_parametros_finais(float a, float b, float mse, double tempo_cpu) {
-    FILE *fp = fopen("results.txt", "a");
+    FILE *fp = fopen("results.csv", "a");
     if (fp) {
-        fprintf(fp, "(Notebook) %s: a=%.6f, b=%.6f, mse=%.6f, tempo_cpu=%.6f\n", 
+        // Formato: versao,a,b,mse,tempo,code_sz,data_sz
+        // Nota: code_sz e data_sz serão preenchidos pelo script bash por fora ou deixados vazios aqui
+        fprintf(fp, "%s,%.6f,%.6f,%.6f,%.6f\n", 
                 NOME_MELHORIA, a, b, mse, tempo_cpu);
         fclose(fp);
     }

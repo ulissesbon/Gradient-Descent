@@ -1,34 +1,29 @@
 #!/bin/bash
+# run.sh
 
-# Configurações
+# A estrutura é ARQUIVO:NOME_NO_RELATORIO:FLAG
+CONFIGS=(
+    "algoritmo_v0_original.c:v0_Original_O2:-O2"
+    "algoritmo_v0_original.c:v0_Original_O0:-O0"
+    "algoritmo_v1_inline.c:v1_Manual_Inline:-O0"
+    "algoritmo_v2_unrolling.c:v2_Manual_Unrolling:-O0"
+    "algoritmo_v3_fixedpoint.c:v3_Manual_FixedPoint:-O0"
+)
+
 EXECUCOES=10
-VERSOES=("v0_original" "v1_inline" "v2_unrolling" "v3_fixed_point") # Adicione novas aqui
+echo "versao,a,b,mse,tempo" > results.csv # Reset do arquivo central
 
-# Resetar ambiente
-rm -f results_brutos.csv results.txt
-
-echo "versao,tempo,code_sz,data_sz" > results_brutos.csv
-
-for v in "${VERSOES[@]}"; do
-    echo ">>> Testando Versão: $v"
+for cfg in "${CONFIGS[@]}"; do
+    IFS=":" read -r ARQUIVO NOME FLAG <<< "$cfg"
     
-    # 1. Compilação
-    gcc -O2 "algoritmo_$v.c" -lm -o temp_main
+    # Compila passando o NOME_MELHORIA via terminal para o C usar
+    gcc $FLAG "$ARQUIVO" -lm -DNOME_MELHORIA="\"$NOME\"" -o temp_main
     
-    # 2. Medição de Memória Estática (Flash e RAM)
-    CODE_SZ=$(size temp_main | awk 'NR==2 {print $1}')
-    DATA_SZ=$(size temp_main | awk 'NR==2 {print $2 + $3}')
+    echo "Running $NOME with flag $FLAG"
+    size temp_main
 
-    # 3. Execuções repetitivas
-    rm -f results.txt
     for i in $(seq 1 $EXECUCOES); do
         ./temp_main > /dev/null
-    done
-    
-    # 4. Extração do tempo
-    grep "tempo_cpu" results.txt | while read -r line; do
-        TIME=$(echo "$line" | sed -E 's/.*tempo_cpu=([0-9.]+).*/\1/')
-        echo "$v,$TIME,$CODE_SZ,$DATA_SZ" >> results_brutos.csv
     done
 done
 
