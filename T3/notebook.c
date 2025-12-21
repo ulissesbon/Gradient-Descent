@@ -274,30 +274,17 @@ static void executar_epoca_gradiente(float *a_centralizado,
  * 
  * @param a_original Ponteiro para armazenar coeficiente angular final
  * @param b_original Ponteiro para armazenar coeficiente linear final
- * @param arquivo_historico Caminho do arquivo CSV para salvar histórico
  * @note Esta função lê g_x, g_y, g_n e modifica (escreve) em g_x_centralizado.
  * @note Esta função chama outras funções que também acessam globais 
  * (calcular_media, executar_epoca_gradiente, calcular_mse).
  */
 static void treinar_modelo(float *a_original,
-                          float *b_original,
-                          const char *arquivo_historico)
+                          float *b_original)
 {
-    /* Abrir arquivo para salvar histórico */
-    FILE *fp_historico = fopen(arquivo_historico, "w");
-    if (fp_historico) {
-        fprintf(fp_historico, "epoca,a,b,mse\n");
-    }
-
     /* Passo 1: Calcular estatísticas dos dados */
     float media_x = calcular_media(g_x, g_n);
     float media_y = calcular_media(g_y, g_n);
     
-    printf("  Estatísticas dos dados:\n");
-    printf("     • Média de X: %.6f\n", media_x);
-    printf("     • Média de Y: %.6f\n", media_y);
-    printf("\n");
-
     /* Passo 2: Centralizar valores de X */
     for (int i = 0; i < g_n; i++) {
         g_x_centralizado[i] = g_x[i] - media_x;
@@ -306,8 +293,6 @@ static void treinar_modelo(float *a_original,
     /* Passo 3: Inicializar parâmetros */
     float a_centralizado = 0.0;      /* Inclinação começa em zero */
     float b_centralizado = media_y;  /* Intercepto começa na média de Y */
-
-    printf(" Treinando modelo (%d épocas)...\n", EPOCAS_TREINAMENTO);
 
     /* Passo 4: Loop principal de treinamento */
     for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
@@ -320,24 +305,6 @@ static void treinar_modelo(float *a_original,
         
         /* Calcular erro (MSE) na escala original */
         float mse = calcular_mse(a_temp, b_temp);
-
-        /* Salvar no histórico */
-        if (fp_historico) {
-            fprintf(fp_historico, "%d,%.10f,%.10f,%.10f\n", 
-                    epoca, a_temp, b_temp, mse);
-        }
-
-        /* Exibir progresso periodicamente */
-        if ((epoca % INTERVALO_DE_LOG) == 0 || epoca == (EPOCAS_TREINAMENTO - 1)) {
-            printf("     Época %6d/%d - MSE: %.6f - a: %.6f, b: %.6f\n",
-                   epoca + 1, EPOCAS_TREINAMENTO, mse, a_temp, b_temp);
-        }
-    }
-
-    /* Fechar arquivo de histórico */
-    if (fp_historico) {
-        fclose(fp_historico);
-        printf("\n Histórico salvo em: %s\n", arquivo_historico);
     }
 
     /* Passo 5: Converter parâmetros finais para escala original */
@@ -388,11 +355,8 @@ int main(void) {
     for (int i = 0; i < QUANTIDADE_ARQUIVOS; i++) {
         /* Construir caminho do arquivo */
         char caminho_dataset[256];
-        char caminho_historico[256];
         snprintf(caminho_dataset, sizeof(caminho_dataset), 
                  "shuffle/dataset_randomico%d.csv", i);
-        snprintf(caminho_historico, sizeof(caminho_historico), 
-                 "historico/historico_treinamento_dataset%d.csv", i);
 
         printf(" Dataset %d: %s\n", i, caminho_dataset);
         printf("-----------------------------------------------------------------------\n");
@@ -402,8 +366,6 @@ int main(void) {
             fprintf(stderr, " Falha ao carregar dataset %d\n\n", i);
             return 1;
         }
-        
-        printf("  Carregado: %d amostras\n\n", g_n);
 
         /* Variáveis para medição de tempo */
         clock_t inicio, fim;
@@ -414,7 +376,7 @@ int main(void) {
         float b_treinado = 0.0;
         
         inicio = clock(); 
-        treinar_modelo(&a_treinado, &b_treinado, caminho_historico);
+        treinar_modelo(&a_treinado, &b_treinado);
         fim = clock();
         
         tempo_cpu = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
@@ -426,17 +388,6 @@ int main(void) {
 
         // Salvar resultados
         salvar_parametros_finais(i, a_treinado, b_treinado, mse_final, tempo_cpu);
-
-        /* Exibir resultados finais */
-        printf("\n");
-        printf("  RESULTADOS FINAIS:\n");
-        printf("     • Equação da reta: y = %.6f * x + %.6f\n", 
-               a_treinado, b_treinado);
-        printf("     • Coeficiente angular (a): %.6f\n", a_treinado);
-        printf("     • Coeficiente linear (b):  %.6f\n", b_treinado);
-        printf("\n");
-        printf("=======================================================================\n");
-        printf("\n");
     }
 
     return 0;
