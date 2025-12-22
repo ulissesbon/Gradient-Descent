@@ -2,7 +2,7 @@
  RELATÓRIO DE PERFORMANCE: VERSÃO T3 OTIMIZADA (COMPILADOR)
 =================================================================================
 
-Data/Hora: 2025-12-21 20:36:37
+Data/Hora: 2025-12-19 10:16:37
 Configuração de Épocas: 300
 Total de Execuções: 20
 
