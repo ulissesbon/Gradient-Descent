@@ -8,12 +8,12 @@ import math
 import random
 
 # ================= CONFIGURAÇÕES =================
-PORTA_SERIAL = '/dev/ttyACM0'   # Verifique sua porta (ex: COM3 no Windows)
+PORTA_SERIAL = '/dev/ttyACM0'   # Ajuste para sua porta (COM3, /dev/ttyUSB0, etc)
 BAUDRATE = 115200
 ARQUIVO_CSV = 'data/original/dataset_original0.csv' 
 NUMERO_EXECUCOES = 20
-TAMANHO_BATCH = 550             # Limite da RAM definido no dataset_ram.h
-NOME_ARQUIVO_SAIDA = 'resultados_ram_opt_shuffle.txt'
+TAMANHO_BATCH = 550             # Deve casar com o firmware
+NOME_ARQUIVO_SAIDA = 'resultados_hpc_mul_opt.txt'
 # =================================================
 
 def carregar_dados_csv(caminho):
@@ -34,15 +34,14 @@ def realizar_ciclo(ser, dados_fixos, n_ciclo):
     print(f"\n--- EXECUÇÃO {n_ciclo + 1}/{NUMERO_EXECUCOES} ---")
     
     # --- EMBARALHAMENTO (SHUFFLE) ---
-    # Cria uma cópia da lista fixa e embaralha APENAS a ordem de envio.
-    # Os valores matemáticos do dataset permanecem os mesmos.
+    # Garante que a ordem de envio não afeta o resultado (teste de RAM)
     dados_enviar = dados_fixos[:]
     random.shuffle(dados_enviar)
     
-    print(f"[PYTHON] Enviando {len(dados_enviar)} pontos (Ordem Aleatória)...")
-
-    # 1. Aguarda STM32 (Reset do cursor da RAM é rápido)
+    print(f"[PYTHON] Enviando {len(dados_enviar)} pontos (HPC + Mul Opt)...")
     print("[AGUARDANDO] Esperando 'READY' do STM32...")
+    
+    # 1. Sincronia inicial
     while True:
         try:
             linha = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -53,25 +52,23 @@ def realizar_ciclo(ser, dados_fixos, n_ciclo):
             if "READY" in linha:
                 break
 
-    # 2. Envia Dados
-    print(f"[ENVIO] Transmitindo para RAM...")
+    # 2. Envio de Dados
     for x, y in dados_enviar:
         ser.write(f"{x},{y}\n".encode())
-        time.sleep(0.002) # Pequeno delay para estabilidade da UART
+        time.sleep(0.001) # Delay mínimo
         
-        # Handshake: Espera ACK para cada ponto
-        # Garante que o buffer da UART do STM32 não estoure
+        # Handshake ACK
         while True:
             try:
                 resp = ser.readline().decode('utf-8', errors='ignore').strip()
                 if "ACK" in resp: break
             except: pass
     
-    # 3. Finaliza envio
+    # 3. Finalização do Envio
     ser.write(b"FIM\n")
     print("[PROCESSANDO] Aguardando término do treino...")
 
-    # 4. Captura Resultados
+    # 4. Captura de Resultados
     while True:
         try:
             linha = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -80,7 +77,7 @@ def realizar_ciclo(ser, dados_fixos, n_ciclo):
         if "RESULTADO:" in linha:
             print(f"[RETORNO] {linha}")
             
-            # Regex para extrair todos os parâmetros
+            # Regex ajustado para o formato final
             match_a = re.search(r'a=([\d\.\-eE]+)', linha)
             match_b = re.search(r'b=([\d\.\-eE]+)', linha)
             match_mse = re.search(r'mse=([\d\.\-eE]+)', linha)
@@ -99,7 +96,7 @@ def realizar_ciclo(ser, dados_fixos, n_ciclo):
                     'mse': float(match_mse.group(1)),
                     'epocas': int(match_epocas.group(1)) if match_epocas else 0
                 }
-                print(f"--> Tempo: {res['tempo_s']:.3f} s | MSE: {res['mse']:.6f}")
+                print(f"--> Tempo: {res['tempo_s']:.3f} s | Épocas Reais: {res['epocas']}")
                 return res
             else:
                 print("[ERRO] Falha no parse dos dados.")
@@ -114,31 +111,33 @@ def salvar_relatorio_txt(dados_coletados):
     media = sum(tempos) / len(tempos)
     variancia = sum((t - media) ** 2 for t in tempos) / len(tempos)
     desvio_padrao = math.sqrt(variancia)
-    epocas_config = dados_coletados[0]['epocas']
+    
+    # Pega a média de épocas também, pois agora varia com o Early Stopping
+    epocas_lista = [d['epocas'] for d in dados_coletados]
+    media_epocas = sum(epocas_lista) / len(epocas_lista)
 
     with open(NOME_ARQUIVO_SAIDA, 'w', encoding='utf-8') as f:
         f.write("=================================================================================\n")
-        f.write(f" RELATÓRIO: RAM OTIMIZADA (PTR + UNROLL) - 550 PONTOS SHUFFLED\n")
+        f.write(f" RELATÓRIO: HPC FINAL (RAM + NO UNROLL + MUL OPT + EARLY STOP)\n")
         f.write("=================================================================================\n\n")
         f.write(f"Dataset Base: {ARQUIVO_CSV}\n")
-        f.write(f"Amostras: {TAMANHO_BATCH} (Mesmos valores, ordem variável a cada teste)\n")
-        f.write(f"Configuração de Épocas: {epocas_config}\n")
+        f.write(f"Amostras: {TAMANHO_BATCH}\n")
         f.write(f"Total de Execuções: {len(dados_coletados)}\n\n")
         
-        header = f"{'#':<3} | {'Tempo (s)':<10} | {'A (Inclinação)':<15} | {'B (Intercepto)':<15} | {'MSE Final':<15}\n"
+        header = f"{'#':<3} | {'Tempo (s)':<10} | {'Épocas':<8} | {'A (Inclinação)':<15} | {'B (Intercepto)':<15} | {'MSE Final':<15}\n"
         f.write(header)
         f.write("-" * len(header) + "\n")
         
         for d in dados_coletados:
-            line = f"{d['iteracao']:<3} | {d['tempo_s']:<10.3f} | {d['a']:<15.6f} | {d['b']:<15.6f} | {d['mse']:<15.6f}\n"
+            line = f"{d['iteracao']:<3} | {d['tempo_s']:<10.3f} | {d['epocas']:<8} | {d['a']:<15.6f} | {d['b']:<15.6f} | {d['mse']:<15.6f}\n"
             f.write(line)
             
         f.write("-" * len(header) + "\n\n")
-        f.write("ESTATÍSTICAS DE TEMPO:\n")
-        f.write(f"  > Média:            {media:.3f} s\n")
-        f.write(f"  > Desvio Padrão:    {desvio_padrao:.3f} s\n")
-        f.write(f"  > Mínimo:           {min(tempos):.3f} s\n")
-        f.write(f"  > Máximo:           {max(tempos):.3f} s\n")
+        f.write("ESTATÍSTICAS:\n")
+        f.write(f"  > Tempo Médio:      {media:.3f} s (Desvio: {desvio_padrao:.3f})\n")
+        f.write(f"  > Épocas Médias:    {media_epocas:.1f}\n")
+        f.write(f"  > Tempo Mínimo:     {min(tempos):.3f} s\n")
+        f.write(f"  > Tempo Máximo:     {max(tempos):.3f} s\n")
         f.write("=================================================================================\n")
 
     print(f"\n[SUCESSO] Relatório salvo em: {NOME_ARQUIVO_SAIDA}")
@@ -154,12 +153,10 @@ def main():
 
     pontos_todos = carregar_dados_csv(ARQUIVO_CSV)
     if len(pontos_todos) < TAMANHO_BATCH:
-        print(f"[ERRO] Dataset insuficiente. O CSV precisa ter pelo menos {TAMANHO_BATCH} pontos.")
+        print(f"[ERRO] Dataset insuficiente.")
         return
 
-    # --- SELEÇÃO FIXA ---
-    # Seleciona os primeiros 550 pontos uma única vez.
-    # Isso isola a variável "Dataset" da equação, focando apenas na performance.
+    # Fixa o dataset para consistência matemática
     batch_fixo = pontos_todos[:TAMANHO_BATCH]
     print(f"[CONFIG] Batch de {len(batch_fixo)} pontos FIXADO para o teste.")
 

@@ -2,8 +2,12 @@
  RELATÓRIO: TREINAMENTO FLASH + UNROLLING (SEM SHUFFLE)
 =================================================================================
 
-Data/Hora: 2025-12-21 21:33:45
-Dataset Base: data/original/dataset_original0.csv
+DESCRIÇÃO DO TESTE:
+Aplicação da técnica de "Loop Unrolling" (Desenrolamento de Laço) com fator 5. O código executa 5 cálculos por iteração do loop para reduzir o overhead de controle (i++ e comparações).
+- Memória: Flash.
+- Otimização: Loop Unrolling manual.
+- Objetivo: Verificar se reduzir desvios condicionais compensa a leitura lenta da Flash.
+
 Amostras: 1000 (Ordem Sequencial Fixa)
 Configuração de Épocas: 300
 Total de Execuções: 20

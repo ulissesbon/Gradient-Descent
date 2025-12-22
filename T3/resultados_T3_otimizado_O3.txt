@@ -2,7 +2,12 @@
  RELATÓRIO DE PERFORMANCE: VERSÃO T3 OTIMIZADA (COMPILADOR)
 =================================================================================
 
-Data/Hora: 2025-12-19 10:16:37
+DESCRIÇÃO DO TESTE:
+Mesma estrutura da implementação original (Modular/Flash), porém compilada com a flag de otimização máxima do GCC (-O3).
+- Memória: Flash.
+- Otimização: Apenas otimizações automáticas do compilador (inline, reordenação de instruções).
+- Objetivo: Medir o ganho obtido apenas via software/toolchain, sem alterar o código fonte.
+
 Configuração de Épocas: 300
 Total de Execuções: 20
 
@@ -24,8 +29,8 @@ Total de Execuções: 20
 14  | 6.804      | 2.000014        | 0.973267        | 2.111616       
 15  | 6.804      | 2.000014        | 0.973267        | 2.111616       
 16  | 6.804      | 2.000014        | 0.973267        | 2.111616       
-17  | 6.805      | 2.000014        | 0.973267        | 2.111616       
-18  | 6.804      | 2.000014        | 0.973267        | 2.111616       
+17  | 6.804      | 2.000014        | 0.973267        | 2.111616       
+18  | 6.805      | 2.000014        | 0.973267        | 2.111616       
 19  | 6.804      | 2.000014        | 0.973267        | 2.111616       
 20  | 6.804      | 2.000014        | 0.973267        | 2.111616       
 -----------------------------------------------------------------------

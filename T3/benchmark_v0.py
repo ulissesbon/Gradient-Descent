@@ -101,7 +101,6 @@ def salvar_relatorio_txt(dados_coletados):
         f.write("=================================================================================\n")
         f.write(f" RELATÓRIO DE PERFORMANCE: VERSÃO T3 ORIGINAL\n")
         f.write("=================================================================================\n\n")
-        f.write(f"Data/Hora: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Configuração de Épocas: {epocas_config}\n")
         f.write(f"Total de Execuções: {len(dados_coletados)}\n\n")
         

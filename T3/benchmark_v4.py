@@ -107,7 +107,6 @@ def salvar_relatorio_txt(dados_coletados):
         f.write("=================================================================================\n")
         f.write(f" RELATÓRIO: TREINAMENTO MONOLÍTICO (FLASH - 1000 PONTOS)\n")
         f.write("=================================================================================\n\n")
-        f.write(f"Data/Hora: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Dataset: {ARQUIVO_CSV}\n")
         f.write(f"Amostras: {TAMANHO_BATCH} (Ordem Fixa)\n")
         f.write(f"Configuração de Épocas: {epocas_config}\n")

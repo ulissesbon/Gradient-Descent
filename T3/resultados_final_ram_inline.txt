@@ -2,7 +2,13 @@
  RELATÓRIO FINAL: RAM MONOLÍTICA + INLINE + GLOBAIS (550pt)
 =================================================================================
 
-Data/Hora: 2025-12-21 22:39:05
+DESCRIÇÃO DO TESTE:
+Versão "HPC Força Bruta". Combina estrutura monolítica, dataset na RAM, função `always_inline` e uso agressivo de variáveis globais estáticas.
+- Memória: RAM.
+- Otimização: Inline forçado + Globais (redução de Stack) + Unrolling.
+- Objetivo: A versão mais rápida possível usando força bruta computacional.
+
+
 Dataset Base: data/original/dataset_original0.csv
 Amostras: 550 (Ordem Variável)
 Configuração de Épocas: 300

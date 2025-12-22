@@ -2,7 +2,12 @@
  RELATÓRIO: TREINAMENTO MONOLÍTICO (FLASH - 1000 PONTOS)
 =================================================================================
 
-Data/Hora: 2025-12-21 21:52:24
+DESCRIÇÃO DO TESTE:
+Primeira refatoração estrutural de código. O algoritmo foi movido para um arquivo único (Monolítico/Main.c) para reduzir overhead de chamadas de função entre arquivos.
+- Memória: Flash (1000 pontos).
+- Otimização: Eliminação de chamadas externas (Linker optimization).
+- Objetivo: Testar o impacto da localidade de código mantendo os dados na Flash.
+
 Amostras: 1000 (Ordem Fixa)
 Configuração de Épocas: 300
 Total de Execuções: 20

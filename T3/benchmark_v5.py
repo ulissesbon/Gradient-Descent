@@ -118,7 +118,6 @@ def salvar_relatorio_txt(dados_coletados):
         f.write("=================================================================================\n")
         f.write(f" RELATÓRIO: FLASH MODULAR 550 PONTOS (SHUFFLED)\n")
         f.write("=================================================================================\n\n")
-        f.write(f"Data/Hora: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Dataset Base: {ARQUIVO_CSV}\n")
         f.write(f"Amostras: {TAMANHO_BATCH} (Mesmos valores, ordem variável a cada teste)\n")
         f.write(f"Configuração de Épocas: {epocas_config}\n")
