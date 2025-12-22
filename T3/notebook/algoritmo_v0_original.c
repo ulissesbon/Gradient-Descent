@@ -1,382 +1,111 @@
-/*
- * @(#)main.c    1.0 02/11/2025
- *
- * Copyright 2025 by Raquel Maciel e Ulisses Bonfim
- * Universidade IFCE - Engenharia de Computação (DTEL)
- * All rights reserved.
- *
- * Este software é parte de um trabalho acadêmico para a disciplina de
- * Sistemas Embarcados. Uso livre para fins educacionais.
- */
-
-/*
- * ============================================================================
- * REGRESSÃO LINEAR COM DESCIDA DE GRADIENTE
- * ============================================================================
- * 
- * DESCRIÇÃO GERAL:
- *   Implementa regressão linear (y ≈ a*x + b) usando o algoritmo de descida
- *   de gradiente (gradient descent) com centralização de dados.
- * 
- * CARACTERÍSTICAS:
- *   - Leitura de datasets CSV
- *   - Treinamento com descida de gradiente
- *   - Exportação do histórico para visualização
- *   - Armazenamento estático (~8 KB)
- * 
- * ENTRADA:
- *   Arquivo CSV no formato:
- *     x,y
- *     1.000000,3.190011
- *     2.000000,5.093333
- *     ...
- *   Onde x = variável independente, y = variável dependente
- * 
- * SAÍDA:
- *   - Terminal: Parâmetros finais (a, b) e estatísticas
- *   - Arquivo CSV: Histórico completo do treinamento (época, a, b, MSE)
- * 
- * COMO USAR:
- *   Compilar: gcc -o main main.c -lm
- *   Executar: ./main
- *   
- * AUTORES:
- *   Raquel Maciel
- *   Ulisses Bonfim
- * 
- * DATA: Novembro 2024
- * 
- * CONTEXTO:
- *   Trabalho de Sistemas Embarcados
- *   IFCE - Campus Fortaleza
- * 
- * PLATAFORMA ALVO:
- *   Linux/Windows/MacOS com GCC
- *   Requer biblioteca matemática padrão (-lm)
- * 
- * ============================================================================
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-/* ========================================================================== */
-/* CONFIGURAÇÕES E CONSTANTES                                                 */
-/* ========================================================================== */
+#define DATASET_MAX_SAMPLES 750
+#define GRADIENT_EPOCHS 30000
+#define GRADIENT_LR_A 1e-5f
+#define GRADIENT_LR_B 1e-5f
 
-/* Número de amostras*/
-#define QUANTIDADE_AMOSTRAS 1000
-
-/* Número de iterações de treinamento */
-#define EPOCAS_TREINAMENTO 30000
-
-/* Nome da melhoria para debugar */
-#ifndef NOME_MELHORIA
-    #define NOME_MELHORIA "desconhecido"
+#ifndef OPTIMIZATION_NAME
+    #define OPTIMIZATION_NAME "Unknown_Optimization"
 #endif
 
-/* 
-  Taxas de aprendizado (learning rates):
-  - Taxa menor para inclinação (a) pois x pode ter valores grandes
-  - Taxa para intercepto (b) pode ser igual ou diferente
-*/
-#define TAXA_APRENDIZADO_INCLINACAO  1e-5
-#define TAXA_APRENDIZADO_INTERCEPTO  1e-5
+// Dados globais (População)
+static const int N = DATASET_MAX_SAMPLES;
+static float g_x[DATASET_MAX_SAMPLES];
+static float g_y[DATASET_MAX_SAMPLES];
+static float g_a;
+static float g_b;
+static float g_mse;
 
-/* Intervalo para exibir progresso (a cada N épocas) */
-#define INTERVALO_DE_LOG 5000
-
-
-/* ========================================================================== */
-/* ARMAZENAMENTO ESTÁTICO (~8 KB)                                             */
-/* ========================================================================== */
-
-/*
-  Vetores globais para armazenar os dados:
-  - g_x: valores de entrada (eixo horizontal)
-  - g_y: valores de saída/target (eixo vertical)
-  - g_x_centralizado: valores de x após centralização (x - média)
-  - g_n: quantidade efetiva de amostras carregadas
-*/
-
-static float g_x[QUANTIDADE_AMOSTRAS];
-static float g_y[QUANTIDADE_AMOSTRAS];
-static float g_x_centralizado[QUANTIDADE_AMOSTRAS];
-static int   g_n = 0;
-
-
-/* ========================================================================== */
-/* FUNÇÕES DE CARREGAMENTO DE DADOS                                           */
-/* ========================================================================== */
-
-/**
- * Carrega dados de um arquivo CSV para os arrays globais.
- * 
- * Formato esperado:
- *   x,y
- *   1.0,3.2
- *   2.0,5.1
- *   ...
- * 
- * @param caminho_csv Caminho do arquivo CSV a ser lido
- * @return Número de amostras carregadas, ou 0 em caso de erro
- * @note Esta função modifica (escreve) nas variáveis globais g_x, g_y e g_n.
- */
+// Funções de suporte ao ambiente (IGUAIS ÀS SUAS ORIGINAIS)
 static int carregar_csv(const char *caminho_csv) {
-    /* Abrir arquivo para leitura */
     FILE *fp = fopen(caminho_csv, "r");
-    if (!fp) {
-        fprintf(stderr, " Erro: não foi possível abrir '%s'\n", caminho_csv);
-        return 0;
-    }
-
-    /* Ler e descartar a linha de cabeçalho */
+    if (!fp) return 0;
     char cabecalho[128];
-    if (!fgets(cabecalho, sizeof(cabecalho), fp)) {
-        fprintf(stderr, " Erro: arquivo vazio ou corrompido.\n");
-        fclose(fp);
-        return 0;
+    if (!fgets(cabecalho, sizeof(cabecalho), fp)) return 0;
+    for (int i = 0; i < DATASET_MAX_SAMPLES; i++) {
+        if (fscanf(fp, "%f,%f", &g_x[i], &g_y[i]) != 2) break;
     }
-
-    /* Ler todas as linhas de dados */
-    for (int i = 0; i < QUANTIDADE_AMOSTRAS; i++) {
-        float xd, yd;
-        
-        /* Tentar ler um par (x, y) */
-        if (fscanf(fp, "%f,%f", &xd, &yd) != 2) {
-            fprintf(stderr, " Erro ao ler a linha %d do CSV.\n", i + 2);
-            fclose(fp);
-            return 0;
-        }
-        
-        /* Armazenar nos arrays globais */
-        g_x[i] = xd;
-        g_y[i] = yd;
-    }
-
     fclose(fp);
-    g_n = QUANTIDADE_AMOSTRAS;
-    
-    return g_n;
+    return 1;
 }
 
-
-/* ========================================================================== */
-/* FUNÇÕES MATEMÁTICAS AUXILIARES                                             */
-/* ========================================================================== */
-
-/**
- * Calcula a média aritmética de um vetor.
- * 
- * @param v Ponteiro para o vetor
- * @param n Número de elementos
- * @return Média dos valores
- */
-static float calcular_media(const float *v, int n) {
-    float soma = 0.0;
+/* ========================================================================
+   ESTA É A FUNÇÃO COM TODA A LÓGICA DENTRO (KERNEL)
+   ======================================================================== */
+static void gradient_run() {
     
-    for (int i = 0; i < n; i++) {
-        soma += v[i];
+    // 1. CÁLCULO DE MÉDIAS (Necessário para estabilidade numérica/centralização)
+    float sum_x = 0.0f, sum_y = 0.0f;
+    for (int i = 0; i < N; i++) {
+        sum_x += g_x[i];
+        sum_y += g_y[i];
     }
-    
-    return soma / (float)n;
-}
+    float mean_x = sum_x / (float)N;
+    float mean_y = sum_y / (float)N;
 
-/**
- * Calcula o Erro Quadrático Médio (Mean Squared Error).
- * 
- * MSE = (1/N) * Σ(y_pred - y_real)²
- * 
- * @param a Coeficiente angular (inclinação)
- * @param b Coeficiente linear (intercepto)
- * @return Valor do MSE
- * @note Esta função lê as variáveis globais g_x, g_y e g_n.
- */
-static float calcular_mse(float a, float b) {
-    float soma_erros_quadrados = 0.0;
-    
-    for (int i = 0; i < g_n; i++) {
-        float y_predito = a * g_x[i] + b;
-        float erro = y_predito - g_y[i];
-        soma_erros_quadrados += erro * erro;
-    }
-    
-    return soma_erros_quadrados / (float)g_n;
-}
+    // 2. INICIALIZAÇÃO
+    float a = 0.0f;
+    float b = mean_y; // Início inteligente para convergir mais rápido
 
+    // 3. LOOP PRINCIPAL DO GRADIENTE (O núcleo da medição)
+    for (int e = 0; e < GRADIENT_EPOCHS; e++) {
+        float gradA = 0.0f;
+        float gradB = 0.0f;
 
-/* ========================================================================== */
-/* ALGORITMO DE DESCIDA DE GRADIENTE                                          */
-/* ========================================================================== */
+        for (int i = 0; i < N; i++) {
+            // Lógica interna: y_pred = a * (x - mean_x) + b
+            float x_cent = g_x[i] - mean_x;
+            float y_pred = a * x_cent + b;
+            float err = y_pred - g_y[i];
 
-/**
- * Executa uma época (iteração) da descida de gradiente.
- * 
- * Modelo no espaço centralizado:
- *   y ≈ a_c * (x - média_x) + b_c
- * 
- * Gradientes (derivadas parciais da função de custo):
- *   ∂J/∂a_c = (2/N) * Σ [erro * (x - média_x)]
- *   ∂J/∂b_c = (2/N) * Σ [erro]
- * 
- * Atualização dos parâmetros:
- *   a_c ← a_c - taxa_a * (∂J/∂a_c)
- *   b_c ← b_c - taxa_b * (∂J/∂b_c)
- * 
- * @param a_centralizado Ponteiro para o coeficiente angular (centralizado)
- * @param b_centralizado Ponteiro para o coeficiente linear (centralizado)
- * @note Esta função lê as variáveis globais g_x_centralizado, g_y e g_n.
- */
-static void executar_epoca_gradiente(float *a_centralizado,
-                                     float *b_centralizado)
-{
-    float gradiente_a = 0.0;
-    float gradiente_b = 0.0;
-
-    /* Calcular gradientes acumulando contribuições de cada amostra */
-    for (int i = 0; i < g_n; i++) {
-        float x_cent = g_x_centralizado[i];  /* x - média(x) */
-        float y_predito = (*a_centralizado) * x_cent + (*b_centralizado);
-        float erro = y_predito - g_y[i];
-
-        /* Acumular gradientes */
-        gradiente_a += erro * x_cent;  /* ∂J/∂a ∝ Σ(erro * x_cent) */
-        gradiente_b += erro;           /* ∂J/∂b ∝ Σ(erro) */
-    }
-
-    /* Normalizar gradientes pela quantidade de amostras */
-    gradiente_a = (2.0 * gradiente_a) / (float)g_n;
-    gradiente_b = (2.0 * gradiente_b) / (float)g_n;
-
-    /* Atualizar parâmetros (descida do gradiente) */
-    *a_centralizado -= TAXA_APRENDIZADO_INCLINACAO * gradiente_a;
-    *b_centralizado -= TAXA_APRENDIZADO_INTERCEPTO * gradiente_b;
-}
-
-
-/* ========================================================================== */
-/* FUNÇÃO DE TREINAMENTO COMPLETO                                             */
-/* ========================================================================== */
-
-/**
- * Treina o modelo de regressão linear usando descida de gradiente.
- * 
- * Passos do algoritmo:
- *   1. Calcular média de X e Y
- *   2. Centralizar X (subtrair média)
- *   3. Inicializar parâmetros (a=0, b=média_y)
- *   4. Executar épocas de gradiente descendente
- *   5. Converter parâmetros para escala original
- * 
- * Conversão para escala original:
- *   a_original = a_centralizado
- *   b_original = b_centralizado - a_centralizado * média_x
- * 
- * @param a_original Ponteiro para armazenar coeficiente angular final
- * @param b_original Ponteiro para armazenar coeficiente linear final
- * @note Esta função lê g_x, g_y, g_n e modifica (escreve) em g_x_centralizado.
- * @note Esta função chama outras funções que também acessam globais 
- * (calcular_media, executar_epoca_gradiente, calcular_mse).
- */
-static void treinar_modelo(float *a_original, float *b_original)
-{
-    /* Passo 1: Calcular estatísticas dos dados */
-    float media_x = calcular_media(g_x, g_n);
-    float media_y = calcular_media(g_y, g_n);
-    
-    /* Passo 2: Centralizar valores de X */
-    for (int i = 0; i < g_n; i++) {
-        g_x_centralizado[i] = g_x[i] - media_x;
-    }
-
-    /* Passo 3: Inicializar parâmetros */
-    float a_centralizado = 0.0;      /* Inclinação começa em zero */
-    float b_centralizado = media_y;  /* Intercepto começa na média de Y */
-
-
-    /* Passo 4: Loop principal de treinamento */
-    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
-        /* Executar uma época de descida de gradiente */
-        executar_epoca_gradiente(&a_centralizado, &b_centralizado);
-    }
-    /* Passo 5: Converter parâmetros finais para escala original */
-    *a_original = a_centralizado;
-    *b_original = b_centralizado - a_centralizado * media_x;
-}
-
-/**
- * Salva os parâmetros finais em arquivo para comparação.
- * 
- * @param a Coeficiente angular final
- * @param b Coeficiente linear final
- * @param mse Erro quadrático médio final
- * @param tempo_cpu Tempo de CPU gasto no treinamento
- */
-// Em todas as versões (v0, v1, v2, v3)
-static void salvar_parametros_finais(float a, float b, float mse, double tempo_cpu) {
-    FILE *fp = fopen("results.csv", "a");
-    if (fp) {
-        // Formato: versao,a,b,mse,tempo,code_sz,data_sz
-        // Nota: code_sz e data_sz serão preenchidos pelo script bash por fora ou deixados vazios aqui
-        fprintf(fp, "%s,%.6f,%.6f,%.6f,%.6f\n", 
-            NOME_MELHORIA, a, b, mse, tempo_cpu);
-        fclose(fp);
-    }
-}
-
-/* ========================================================================== */
-/* FUNÇÃO PRINCIPAL                                                           */
-/* ========================================================================== */
-
-/**
- * Função principal do programa.
- * 
- * Processa todos os datasets configurados:
- *   1. Carrega dados do CSV
- *   2. Treina modelo com descida de gradiente
- *   3. Exibe resultados finais
- */
-int main(void) {
-    printf("\n");
-    printf("=======================================================================\n");
-    printf("  REGRESSÃO LINEAR COM DESCIDA DE GRADIENTE EM C\n");
-    printf("=======================================================================\n");
-    printf("  Autores: Raquel Maciel e Ulisses Bonfim\n");
-    printf("=======================================================================\n");
-    printf("\n");
-
-        /* Construir caminho do arquivo */
-        char caminho_dataset[256];
-        snprintf(caminho_dataset, sizeof(caminho_dataset), 
-                 "../data/original/dataset_original0.csv");
-
-        /* Carregar dados do CSV */
-        if (!carregar_csv(caminho_dataset)) {
-            fprintf(stderr, " Falha ao carregar dataset\n");
-            return 1;
+            gradA += err * x_cent;
+            gradB += err;
         }
 
-    /* Variáveis para medição de tempo */
-    clock_t inicio, fim;
-    double tempo_cpu;
+        gradA = (2.0f * gradA) / (float)N;
+        gradB = (2.0f * gradB) / (float)N;
 
-    /* Treinar modelo - MEDIÇÃO APENAS DO ALGORITMO */
-    float a_treinado = 0.0;
-    float b_treinado = 0.0;
+        // Atualização dos parâmetros
+        a -= GRADIENT_LR_A * gradA;
+        b -= GRADIENT_LR_B * gradB;
+    }
+
+    // 4. DESCENTRALIZAÇÃO (Voltando para a escala original y = ax + b)
+    g_a = a;
+    g_b = b - (a * mean_x);
+
+    // 5. CÁLCULO DO MSE (Dentro da lógica final)
+    float sum = 0.0f;
+    for (int i = 0; i < N; i++) 
+    {
+        float y_pred = g_a * g_x[i] + g_b;
+        float err = y_pred - g_y[i];
+        sum += err * err;
+    }
+    g_mse = sum / (float)N;
+}
+
+// No seu algoritmo_v0_original.c
+
+static void salvar_parametros_finais(double tempo_cpu) {
+    // APENAS ISTO, sem texto extra, para o Bash capturar
+    printf("%s,%.6f,%.6f,%.6f,%.6f", OPTIMIZATION_NAME, g_a, g_b, g_mse, tempo_cpu);
+}
+
+int main(void) {
+    // Remova todos os printf("=======...") do main
+    if (!carregar_csv("../data/shuffle/dataset_randomico0.csv")) return 1;
+
+    clock_t inicio = clock();
+    gradient_run(); // Sua função de treino
+    clock_t fim = clock();
     
-    inicio = clock(); 
-    treinar_modelo(&a_treinado, &b_treinado);
-    fim = clock();
-    
-    tempo_cpu = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
-    printf("\n  TEMPO DE EXECUÇÃO DO ALGORITMO: %f segundos\n", tempo_cpu);
-
-    // Calcular MSE final
-    float mse_final = calcular_mse(a_treinado, b_treinado);
-
-    // Salvar resultados
-    salvar_parametros_finais(a_treinado, b_treinado, mse_final, tempo_cpu);
+    double tempo_cpu = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
+    // Chama a função que imprime a linha do CSV
+    salvar_parametros_finais(tempo_cpu);
 
     return 0;
 }

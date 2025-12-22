@@ -8,14 +8,20 @@ CONFIGS=(
 
 EXECUCOES=10
 # Adicionamos colunas de memória no cabeçalho
+
+    
+
+
+
+
 echo "versao,a,b,mse,tempo,flash,ram" > results.csv
 
 for cfg in "${CONFIGS[@]}"; do
     IFS=":" read -r ARQUIVO NOME FLAG <<< "$cfg"
     echo ">>> Processando: $NOME"
     
-    # Injetamos o NOME_MELHORIA via GCC
-    gcc $FLAG "$ARQUIVO" -lm -DNOME_MELHORIA="\"$NOME\"" -o temp_main
+    # Injetamos o OPTIMIZATION_NAME via GCC
+    gcc $FLAG "$ARQUIVO" -lm -DOPTIMIZATION_NAME="\"$NOME\"" -o temp_main
     
     # Captura memória uma vez por versão
     FLASH=$(size temp_main | awk 'NR==2 {print $1}')
@@ -24,9 +30,10 @@ for cfg in "${CONFIGS[@]}"; do
     for i in $(seq 1 $EXECUCOES); do
         # Rodamos e anexamos a memória manualmente na linha que o C gerar
         # Como o seu C escreve no arquivo, vamos apenas rodar e depois injetar a memória no CSV
-        ./temp_main > /dev/null
-        # Ajuste: O C escreve no results.csv, mas falta flash/ram. Vamos usar o sed para consertar a última linha:
-        sed -i "$ s/$/,$FLASH,$RAM/" results.csv
+        # Captura a saída do C (que agora é só uma linha de texto)
+        RESULTADO=$(./temp_main)
+        # Escreve tudo junto no CSV de uma só vez
+        echo "$RESULTADO,$FLASH,$RAM" >> results.csv
     done
 done
 
