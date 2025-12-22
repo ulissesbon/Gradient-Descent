@@ -1,54 +1,35 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def gerar_analise():
+def gerar_graficos():
     df = pd.read_csv('results.csv')
-    
-    # Agrupar por versão para estatísticas de tempo e precisão
     stats = df.groupby('versao').agg({
         'tempo': ['mean', 'std'],
-        'a': 'mean',
-        'b': 'mean',
-        'mse': 'mean'
+        'flash': 'first',
+        'ram': 'first'
     }).reset_index()
-    stats.columns = ['Versao', 'Tempo_Medio', 'Tempo_Desvio', 'A_Medio', 'B_Medio', 'MSE_Medio']
-    
-    # REFERÊNCIA: v0_Original_O0
-    ref_row = stats[stats['Versao'] == 'v0_Original_O0']
-    if ref_row.empty:
-        print("Erro: v0_Original_O0 não encontrada nos dados.")
-        return
-        
-    t_ref = ref_row['Tempo_Medio'].values[0]
-    
-    # Calcular Melhoria Relativa em % (Valores positivos = mais rápido que a referência)
-    stats['Melhoria_%'] = ((t_ref - stats['Tempo_Medio']) / t_ref) * 100
+    stats.columns = ['Versao', 'Tempo_Media', 'Tempo_STD', 'Flash', 'RAM']
 
-    print("\n--- RELATÓRIO DE PERFORMANCE (Ref: v0_Original_O0) ---")
-    print(stats[['Versao', 'Tempo_Medio', 'Melhoria_%', 'A_Medio', 'B_Medio']])
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    # Gráfico de Barras
-    plt.figure(figsize=(12, 7))
-    # Ordenar para uma narrativa lógica no slide
-    ordem = ['v0_Original_O0', 'v0_Original_O2', 'v1_Manual_Inline', 'v2_Manual_Unrolling', 'v3_Manual_FixedPoint']
-    stats['Versao'] = pd.Categorical(stats['Versao'], categories=ordem, ordered=True)
-    stats = stats.sort_values('Versao')
+    # Gráfico 1: Tempo
+    ax1.bar(stats['Versao'], stats['Tempo_Media'], yerr=stats['Tempo_STD'], color='teal', capsize=7)
+    ax1.set_title('Tempo de Execução (s)')
+    ax1.grid(axis='y', linestyle='--')
 
-    colors = ['gray', 'blue', 'green', 'orange', 'red']
-    bars = plt.bar(stats['Versao'], stats['Tempo_Medio'], yerr=stats['Tempo_Desvio'], color=colors, capsize=10)
-    
-    plt.axhline(y=t_ref, color='r', linestyle='--', label='Referência (v0 -O0)')
-    plt.ylabel('Tempo de Execução (s)')
-    plt.title('Impacto das Otimizações vs Compilador (-O2)')
-    plt.xticks(rotation=15)
-    plt.legend()
+    # Gráfico 2: Flash (Code Size)
+    ax2.bar(stats['Versao'], stats['Flash'], color='darkblue')
+    ax2.set_title('Memória Flash (Bytes) - Seção .text')
+    ax2.set_ylim(min(stats['Flash'])*0.9, max(stats['Flash'])*1.1)
 
-    for bar, melhora in zip(bars, stats['Melhoria_%']):
-        label = "REFERÊNCIA" if abs(melhora) < 0.001 else f"{melhora:+.1f}%"
-        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), label, ha='center', va='bottom', fontweight='bold')
+    # Gráfico 3: RAM (Data + BSS)
+    ax3.bar(stats['Versao'], stats['RAM'], color='darkorange')
+    ax3.set_title('Memória RAM (Bytes) - Seções .data + .bss')
+    ax3.set_ylim(min(stats['RAM'])*0.9, max(stats['RAM'])*1.1)
 
     plt.tight_layout()
-    plt.savefig('comparativo_final.png')
+    plt.savefig('analise_completa.png')
+    print(stats)
 
 if __name__ == "__main__":
-    gerar_analise()
+    gerar_graficos()

@@ -65,8 +65,8 @@
 /* CONFIGURAÇÕES E CONSTANTES                                                 */
 /* ========================================================================== */
 
-/* Número de amostras */
-#define QUANTIDADE_AMOSTRAS 750
+/* Número de amostras*/
+#define QUANTIDADE_AMOSTRAS 1000
 
 /* Número de iterações de treinamento */
 #define EPOCAS_TREINAMENTO 30000
@@ -279,19 +279,30 @@ static void executar_epoca_gradiente(float *a_centralizado,
  * @note Esta função chama outras funções que também acessam globais 
  * (calcular_media, executar_epoca_gradiente, calcular_mse).
  */
-static void treinar_modelo(float *a_original, float *b_original) {
+static void treinar_modelo(float *a_original, float *b_original)
+{
+    /* Passo 1: Calcular estatísticas dos dados */
     float media_x = calcular_media(g_x, g_n);
     float media_y = calcular_media(g_y, g_n);
-    for (int i = 0; i < g_n; i++) g_x_centralizado[i] = g_x[i] - media_x;
-
-    float a_c = 0.0f;
-    float b_c = media_y;
-
-    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
-        executar_epoca_gradiente(&a_c, &b_c);
+    
+    /* Passo 2: Centralizar valores de X */
+    for (int i = 0; i < g_n; i++) {
+        g_x_centralizado[i] = g_x[i] - media_x;
     }
-    *a_original = a_c;
-    *b_original = b_c - a_c * media_x;
+
+    /* Passo 3: Inicializar parâmetros */
+    float a_centralizado = 0.0;      /* Inclinação começa em zero */
+    float b_centralizado = media_y;  /* Intercepto começa na média de Y */
+
+
+    /* Passo 4: Loop principal de treinamento */
+    for (int epoca = 0; epoca < EPOCAS_TREINAMENTO; epoca++) {
+        /* Executar uma época de descida de gradiente */
+        executar_epoca_gradiente(&a_centralizado, &b_centralizado);
+    }
+    /* Passo 5: Converter parâmetros finais para escala original */
+    *a_original = a_centralizado;
+    *b_original = b_centralizado - a_centralizado * media_x;
 }
 
 /**
@@ -309,7 +320,7 @@ static void salvar_parametros_finais(float a, float b, float mse, double tempo_c
         // Formato: versao,a,b,mse,tempo,code_sz,data_sz
         // Nota: code_sz e data_sz serão preenchidos pelo script bash por fora ou deixados vazios aqui
         fprintf(fp, "%s,%.6f,%.6f,%.6f,%.6f\n", 
-                NOME_MELHORIA, a, b, mse, tempo_cpu);
+            NOME_MELHORIA, a, b, mse, tempo_cpu);
         fclose(fp);
     }
 }
@@ -335,16 +346,16 @@ int main(void) {
     printf("=======================================================================\n");
     printf("\n");
 
-    /* Construir caminho do arquivo */
-    char caminho_dataset[256];
-    snprintf(caminho_dataset, sizeof(caminho_dataset), 
-                "../data/shuffle/dataset_randomico0.csv");
+        /* Construir caminho do arquivo */
+        char caminho_dataset[256];
+        snprintf(caminho_dataset, sizeof(caminho_dataset), 
+                 "../data/original/dataset_original0.csv");
 
-    /* Carregar dados do CSV */
-    if (!carregar_csv(caminho_dataset)) {
-        fprintf(stderr, " Falha ao carregar dataset\n");
-        return 1;
-    }
+        /* Carregar dados do CSV */
+        if (!carregar_csv(caminho_dataset)) {
+            fprintf(stderr, " Falha ao carregar dataset\n");
+            return 1;
+        }
 
     /* Variáveis para medição de tempo */
     clock_t inicio, fim;
