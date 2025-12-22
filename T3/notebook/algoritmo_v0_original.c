@@ -2,7 +2,7 @@
 #include <string.h>
 #include <time.h>
 
-#define DATASET_MAX_SAMPLES 750
+#define DATASET_MAX_SAMPLES 1000
 #define GRADIENT_EPOCHS 30000
 #define GRADIENT_LR_A 1e-5f
 #define GRADIENT_LR_B 1e-5f
@@ -97,7 +97,7 @@ static void salvar_parametros_finais(double tempo_cpu) {
 
 int main(void) {
     // Remova todos os printf("=======...") do main
-    if (!carregar_csv("../data/shuffle/dataset_randomico0.csv")) return 1;
+    if (!carregar_csv("../data/original/dataset_original0.csv")) return 1;
 
     clock_t inicio = clock();
     gradient_run(); // Sua função de treino

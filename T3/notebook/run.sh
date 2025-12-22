@@ -4,6 +4,7 @@
 CONFIGS=(
     "algoritmo_v0_original.c:v0_Original_O2:-O2"
     "algoritmo_v0_original.c:v0_Original_O0:-O0"
+    "algoritmo_v1_shuffle.c:v1_Shuffle_O0:-O0"
 )
 
 EXECUCOES=10
